@@ -68,3 +68,11 @@
   background: #3b7a3b;
   color: white;
 }
+
+.form-row textarea::-webkit-scrollbar {
+  width: 8px;
+}
+.form-row textarea::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+  border-radius: 6px;
+}

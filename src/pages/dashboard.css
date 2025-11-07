@@ -112,7 +112,7 @@ align-items: center;
 .search {
 padding: 8px 12px;
 border-radius: 20px;
-border: 1px solid #777777;
+border: 1px solid #030303;
 min-width: 260px;
 outline: none;
 background-color: #ffffff;
@@ -178,6 +178,10 @@ padding: 16px;
 box-shadow: 0 2px 0 rgba(0,0,0,0.04);
 }
 
+.empty-text {
+  color:#030303;
+}
+
 .card-title {
 font-weight: 700;
 margin-bottom: 8px;
@@ -213,6 +217,8 @@ display: flex;
 flex-direction: column;
 gap: 8px;
 color: #030303;
+max-height: 320px;
+overflow:auto;
 }
 
 .approvals-list li {
@@ -223,6 +229,15 @@ background: white;
 border-radius: 8px;
 box-shadow: 0 1px 0 rgba(0,0,0,0.03);
 border: 1px solid #030303;
+gap: 10px;
+}
+
+.approvals-list::-webkit-scrollbar {
+  width: 8px;
+}
+.approvals-list::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+  border-radius: 6px;
 }
 
 .approvals-list .chev {

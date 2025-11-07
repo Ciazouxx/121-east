@@ -4,6 +4,9 @@ import "./app.css"
 import logo from "./logo.png"
 import Dashboard from "./pages/dashboard"
 import Disbursement from "./pages/disbursement"
+import Payees from "./pages/payees"
+import Reports from "./pages/reports"
+import { AppProvider } from "./AppContext";
 
 function Login() {
   const [email, setEmail] = useState("")
@@ -56,11 +59,15 @@ function Login() {
 export default function AppRouter() {
   return (
     <BrowserRouter>
+    <AppProvider>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/disbursement" element={<Disbursement />} />
+        <Route path="/payees" element={<Payees />} />
+        <Route path="/reports" element={<Reports />} />
       </Routes>
+      </AppProvider>
     </BrowserRouter>
   )
 }

@@ -1,16 +1,87 @@
-import React from "react"
+import React, { useState, useContext, useRef } from "react"
 import "./dashboard.css"
 import "./disbursement.css"
 import logo from "../logo.png"
 import { NavLink, useNavigate } from "react-router-dom"
+import { AppContext } from "../AppContext"
 
 export default function Disbursement() {
+  const { addDisbursement } = useContext(AppContext)
+  const navigate = useNavigate()
+  const fileInputRef = useRef(null)
 
-     const navigate = useNavigate()
+  const [form, setForm] = useState({
+    name: "",
+    method: "",
+    contact: "",
+    amount: "",
+    date: "",
+    reason: "",
+    file: null
+  })
+
+  function handleChange(e) {
+    const { name, value, files } = e.target
+    setForm(prev => ({
+      ...prev,
+      [name]: files ? files[0] : value
+    }))
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault()
+
+    if (!form.name || !form.amount || !form.method) {
+      alert("Please fill in the required fields.")
+      return
+    }
+
+    addDisbursement({
+      name: form.name,
+      method: form.method,
+      contact: form.contact,
+      amount: form.amount,
+      date: form.date,
+      reason: form.reason,
+      file: form.file || null
+    })
+
+    alert("Disbursement submitted.")
+
+    // Reset all fields including file input
+    setForm({
+      name: "",
+      method: "",
+      contact: "",
+      amount: "",
+      date: "",
+      reason: "",
+      file: null
+    })
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  function handleClear() {
+    setForm({
+      name: "",
+      method: "",
+      contact: "",
+      amount: "",
+      date: "",
+      reason: "",
+      file: null
+    })
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
 
   function handleLogout() {
-    navigate("/") 
+    navigate("/")
   }
+
   return (
     <div className="dash-root">
       <aside className="sidebar">
@@ -18,18 +89,10 @@ export default function Disbursement() {
           <img src={logo} alt="logo" className="logo" />
         </div>
         <nav className="nav">
-          <NavLink to="/dashboard" className="nav-item">
-            Dashboard
-          </NavLink>
-          <NavLink to="/disbursement" className="nav-item">
-            Disbursement
-          </NavLink>
-          <NavLink to="/recipients" className="nav-item">
-            Recipients
-          </NavLink>
-          <NavLink to="/reports" className="nav-item">
-            Reports
-          </NavLink>
+          <NavLink to="/dashboard" className="nav-item">Dashboard</NavLink>
+          <NavLink to="/disbursement" className="nav-item">Disbursement</NavLink>
+          <NavLink to="/payees" className="nav-item">Payees</NavLink>
+          <NavLink to="/reports" className="nav-item">Reports</NavLink>
         </nav>
         <button className="logout" onClick={handleLogout}>Log Out</button>
       </aside>
@@ -44,16 +107,22 @@ export default function Disbursement() {
         </header>
 
         <section className="disb-form">
-          <form className="form-card">
+          <form className="form-card" onSubmit={handleSubmit}>
             <div className="form-row">
-              <label>Recipient name:</label>
-              <input type="text" placeholder="Enter recipient name..." />
+              <label>Name Of Payee:</label>
+              <input
+                name="name"
+                type="text"
+                placeholder="Enter the name of the payee..."
+                value={form.name}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="form-row">
               <label>Payment Method:</label>
-              <select>
-                <option>Choose method</option>
+              <select name="method" value={form.method} onChange={handleChange}>
+                <option value="">Choose method</option>
                 <option>Bank Transfer</option>
                 <option>Online Payment</option>
                 <option>Cash</option>
@@ -63,28 +132,59 @@ export default function Disbursement() {
 
             <div className="form-row">
               <label>Contact Details:</label>
-              <input type="text" placeholder="Phone number or email..." />
+              <input
+                name="contact"
+                type="text"
+                placeholder="Phone number or email..."
+                value={form.contact}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="form-row inline">
               <label>Amount:</label>
-              <input type="number" placeholder="₱..." />
+              <input
+                name="amount"
+                type="number"
+                placeholder="₱..."
+                value={form.amount}
+                onChange={handleChange}
+              />
               <label>Date:</label>
-              <input type="date" />
+              <input
+                name="date"
+                type="date"
+                value={form.date}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="form-row">
               <label>Reason/Description:</label>
-              <textarea placeholder="Type here..." rows="4" />
+              <textarea
+                name="reason"
+                placeholder="Type here..."
+                rows="4"
+                value={form.reason}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="form-row">
               <label>Attachment:</label>
-              <input type="file" className="filebtn" />
+              <input
+                name="file"
+                type="file"
+                className="filebtn"
+                ref={fileInputRef}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="form-actions">
-              <button type="button" className="btn cancel">Cancel</button>
+              <button type="button" className="btn cancel" onClick={handleClear}>
+                Clear All
+              </button>
               <button type="submit" className="btn submit">Submit</button>
             </div>
           </form>
