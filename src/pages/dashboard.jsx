@@ -1,6 +1,8 @@
 import React, { useContext, useState } from "react";
 import "./dashboard.css";
 import logo from "./logo.png";
+import chevIcon from "./arrowright.png"; 
+import warningIcon from "./warning.png";
 import { NavLink, useNavigate } from "react-router-dom";
 import { AppContext } from "../AppContext";
 
@@ -10,19 +12,35 @@ export default function Dashboard() {
     stats,
     recentActivity,
     pendingApprovals,
-    cancelDisbursement,
-    markDisbursementFailed
   } = useContext(AppContext);
 
   const [showActions, setShowActions] = useState(null);
+  const [modalCoords, setModalCoords] = useState(null);
 
   function handleLogout() {
     navigate("/");
   }
 
-  const handleToggleActions = (index) => {
-    setShowActions(showActions === index ? null : index);
+  const handleToggleActions = (event, index) => {
+    
+    if (showActions === index) {
+      setShowActions(null);
+      setModalCoords(null);
+      return;
+    }
+    
+    const rect = event.currentTarget.getBoundingClientRect();
+    setModalCoords({
+      top: rect.top, 
+      left: rect.left
+    });
+    setShowActions(index);
   };
+
+  function closeActionModal() {
+    setShowActions(null);
+    setModalCoords(null);
+  }
 
   return (
     <div className="dash-root">
@@ -74,6 +92,7 @@ export default function Dashboard() {
           <div className="stat-card warn">
             <div className="stat-value">{stats.failedTransactions}</div>
             <div className="stat-title">Failed Transactions</div>
+            <img src={warningIcon} alt="warning" className="warning-icon" />
           </div>
         </section>
 
@@ -105,43 +124,58 @@ export default function Dashboard() {
             ) : (
               <ul className="approvals-list">
                 {pendingApprovals.map((a, i) => {
-                  if (a.status === "Failed") return null
+                  if (a.status === "Failed") return null;
                   return (
                     <li key={i}>
-                      <span className="bullet" />
                       <span className="app-text">
                         ₱{a.amount} disbursed to {a.name}
                       </span>
-                      <button className="chev" onClick={() => handleToggleActions(i)}>
-                        ›
+                      <button
+                        className="chev-image"
+                        onClick={(e) => handleToggleActions(e, i)}
+                        aria-label="Open actions"
+                      >
+                        <img src={chevIcon} alt="actions" />
                       </button>
-                      {showActions === i && (
-                        <div className="approval-actions">
-                          <button
-                            className="check-status"
-                            onClick={() => navigate("/reports")}
-                          >
-                            Open
-                          </button>
-                          <button
-                            className="cancel-btn"
-                            onClick={() => {
-                              markDisbursementFailed(i)
-                              setShowActions(null)
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
                     </li>
-                  )
+                  );
                 })}
               </ul>
             )}
           </div>
         </section>
-      </main>
-    </div>
-  );
-}
+       {showActions !== null && modalCoords && (
+         <div className="action-modal-backdrop" onClick={closeActionModal}>
+           <div
+             className="action-modal"
+             style={{ top: modalCoords.top + "px", left: modalCoords.left + "px" }}
+             onClick={(e) => e.stopPropagation()}
+           >
+             <div className="action-modal-row">
+               <button
+                 className="check-status"
+                 onClick={() => {
+                   navigate("/reports");
+                   closeActionModal();
+                 }}
+               >
+                 Open
+               </button>
+             </div>
+             <div className="action-modal-row">
+               <button
+                 className="close-btn"
+                 onClick={() => {
+                   closeActionModal();
+                 }}
+               >
+                 Close
+               </button>
+             </div>
+           </div>
+         </div>
+        )}
+       </main>
+     </div>
+   );
+ }

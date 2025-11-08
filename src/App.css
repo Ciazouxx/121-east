@@ -92,6 +92,25 @@ min-height: 100vh;
   cursor: pointer;
   padding: 6px;
   border-radius: 6px;
+
+  /* prevent default focus/active outline */
+  outline: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* ensure no visible outline on click/focus/active (still keyboard-focusable) */
+.eye-btn:focus,
+.eye-btn:active {
+  outline: none;
+  box-shadow: none;
+}
+
+/* optional: keep visible focus for keyboard users only (better a11y) */
+.eye-btn:focus-visible {
+  outline: 2px solid rgba(184,90,90,0.12);
+  outline-offset: 2px;
 }
 
 .signin {

@@ -2,6 +2,8 @@ import React, { useState } from "react"
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom"
 import "./app.css"
 import logo from "./logo.png"
+import eyeOpen from "./vieweye.png"
+import eyeClosed from "./crossedeye.png"
 import Dashboard from "./pages/dashboard"
 import Disbursement from "./pages/disbursement"
 import Payees from "./pages/payees"
@@ -46,7 +48,11 @@ function Login() {
             onClick={() => setShow(s => !s)}
             aria-label="toggle password"
           >
-            {show ? "🙈" : "👁️"}
+            <img
+              src={show ? eyeOpen : eyeClosed}
+              alt={show ? "Show password" : "Hide password"}
+              style={{ width: 28, height: 28, display: "block" }}
+            />
           </button>
         </div>
         <button className="signin" type="submit">Sign In</button>
