@@ -4,9 +4,10 @@ import "./disbursement.css"
 import logo from "../logo.png"
 import { NavLink, useNavigate } from "react-router-dom"
 import { AppContext } from "../AppContext"
+import settingsicon from "./settingsicon.png"
 
 export default function Disbursement() {
-  const { addDisbursement, payees, getPayeeCOA, updatePayeeCOA, defaultCOA } = useContext(AppContext)
+  const { addDisbursement, payees, getPayeeCOA, updatePayeeCOA, defaultCOA, refCounter } = useContext(AppContext)
   const navigate = useNavigate()
   const [manualAccountError, setManualAccountError] = useState(false)
 
@@ -170,7 +171,13 @@ export default function Disbursement() {
           <h1 className="page-title">Disbursement</h1>
           <div className="top-controls">
             <input className="search" placeholder="Search..." />
-            <button className="gear" aria-label="settings">⚙️</button>
+            <button className="gear" aria-label="settings">
+              <img 
+                            src={settingsicon}
+                            alt="settings" 
+                            style={{ width: "30px", height: "30px" }} 
+              />
+            </button>
           </div>
         </header>
 
@@ -251,6 +258,7 @@ export default function Disbursement() {
             </div>
 
             <div className="form-actions">
+              <label>Reference Code:</label> <input type="text" disabled value={String(refCounter).padStart(5, "0")} />
               <button type="button" className="btn cancel" onClick={handleClear}>Clear All</button>
               <button type="submit" className="btn submit">Submit</button>
             </div>

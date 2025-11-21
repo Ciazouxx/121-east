@@ -4,6 +4,7 @@ import "./chartofaccounts.css"
 import logo from "./logo.png"
 import { NavLink, useNavigate } from "react-router-dom"
 import { AppContext } from "../AppContext"
+import settingsicon from "./settingsicon.png"
 
 export default function ChartOfAccounts() {
   const navigate = useNavigate()
@@ -105,7 +106,13 @@ export default function ChartOfAccounts() {
           <h1 className="page-title">Chart of Accounts</h1>
           <div className="top-controls">
             <input className="search" placeholder="Search..." />
-            <button className="gear" aria-label="settings">⚙️</button>
+            <button className="gear" aria-label="settings">
+              <img 
+              src={settingsicon}
+              alt="settings" 
+              style={{ width: "30px", height: "30px" }} 
+              />
+            </button>
           </div>
         </header>
 
@@ -153,7 +160,6 @@ export default function ChartOfAccounts() {
           </table>
         ))}
 
-        {/* Totals Table inside coa-card */}
         <table className="coa-section-table">
           <thead>
             <tr><th colSpan="4" className="section-header">Totals</th></tr>

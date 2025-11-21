@@ -4,6 +4,7 @@ import "./payees.css"
 import logo from "./logo.png"
 import { NavLink, useNavigate } from "react-router-dom"
 import { AppContext } from "../AppContext"
+import settingsicon from "./settingsicon.png"
 
 export default function Payees() {
   const navigate = useNavigate()
@@ -147,8 +148,13 @@ export default function Payees() {
           <h1 className="page-title">Payees</h1>
           <div className="top-controls">
             <input className="search" placeholder="Search..." />
-            <button className="gear" aria-label="settings">⚙️</button>
-            {/* moved Add Payee next to the table */}
+            <button className="gear" aria-label="settings">
+              <img 
+              src={settingsicon}
+              alt="settings" 
+              style={{ width: "30px", height: "30px" }} 
+              />
+            </button>
           </div>
         </header>
 

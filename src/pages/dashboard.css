@@ -454,3 +454,120 @@ overflow-x: auto;
 grid-template-columns: 1fr;
 }
 }
+
+.gear:focus,
+.gear:active {
+  outline: none;
+}
+
+.gear img {
+  outline: none;
+}
+
+.settings-menu {
+  position: absolute;
+  top: 70px;
+  right: 30px;
+  background: white;
+  border: 1px solid #030303;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 50;
+}
+
+.settings-item {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: 600;
+  color:#030303;
+}
+
+.settings-item:hover {
+  background: rgba(0,0,0,0.06);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.18);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 80;
+}
+
+.account-modal,
+.status-modal {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #030303;
+  width: 400px;
+  color:#030303;
+}
+
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.field-row label {
+  font-weight: 600;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.info-row span {
+  flex: 1;
+  word-break: break-word;
+}
+
+.change-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #030303;
+  background: white;
+  cursor: pointer;
+  color:#030303;
+}
+
+.change-btn:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+.close-modal {
+  margin-top: 16px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #030303;
+  background: white;
+  cursor: pointer;
+  color: #030303;
+}
+
+.close-modal:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+.status-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+

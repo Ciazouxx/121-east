@@ -11,6 +11,8 @@ export function AppProvider({ children }) {
   const [payeeCOA, setPayeeCOA] = useState({});
   const [currentCOA, setCurrentCOA] = useState({});
   const [currentPayee, setCurrentPayee] = useState(null);
+  const [refCounter, setRefCounter] = useState(1)
+  const [totalRequested, setTotalRequested] = useState(0);
 
   const [stats, setStats] = useState({
     totalDisbursedToday: 0,
@@ -19,8 +21,13 @@ export function AppProvider({ children }) {
   });
 
   function addDisbursement(entry) {
+    const withRef = { ...entry, reference: String(refCounter).padStart(5, "0") }
+    setRefCounter(prev => prev + 1);
+
+    setTotalRequested(prev => prev + 1);
+
     setPendingApprovals(prev => {
-      const updated = [...prev, { ...entry, status: "Pending" }];
+      const updated = [...prev, { ...withRef, status: "Pending" }];
       setStats(s => ({
         ...s,
         pendingDisbursements: updated.filter(p => p.status === "Pending").length
@@ -228,7 +235,11 @@ export function AppProvider({ children }) {
     defaultCOA,
     setRecentActivity,
     setPendingApprovals,
-    approveDisbursement
+    approveDisbursement,
+    refCounter,
+    setRefCounter,
+    setTotalRequested,
+    totalRequested,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

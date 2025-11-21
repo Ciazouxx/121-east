@@ -4,11 +4,16 @@ import "./summary.css"
 import logo from "./logo.png"
 import { NavLink, useNavigate } from "react-router-dom"
 import { AppContext } from "../AppContext"
+import settingsicon from "./settingsicon.png"
 
 export default function Sumarry() {
   const navigate = useNavigate()
   const { pendingApprovals, markDisbursementFailed, deletePendingApproval, approveDisbursement } = useContext(AppContext)
   const [selectedIndex, setSelectedIndex] = useState(null)
+  
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [payeeFilter, setPayeeFilter] = useState("All");
+  const [dateFilter, setDateFilter] = useState({ start: null, end: null });
 
   function handleLogout() {
     navigate("/")
@@ -26,6 +31,17 @@ export default function Sumarry() {
       status: d.status || "Pending"
     }
   })
+
+  const filteredReports = reports
+  .filter(r => statusFilter === "All" || r.status === statusFilter)
+  .filter(r => payeeFilter === "All" || r.recipient.toLowerCase().includes(payeeFilter.toLowerCase()))
+  .filter(r => {
+    if (!dateFilter.start || !dateFilter.end) return true;
+    const reportDate = new Date(r.date);
+    const start = new Date(dateFilter.start);
+    const end = new Date(dateFilter.end);
+    return reportDate >= start && reportDate <= end;
+  });
 
   function openModal(i) {
     setSelectedIndex(i)
@@ -73,15 +89,33 @@ export default function Sumarry() {
           <h1 className="page-title">Summary</h1>
           <div className="top-controls">
             <input className="search" placeholder="Search..." />
-            <button className="gear" aria-label="settings">⚙️</button>
+            <button className="gear" aria-label="settings">
+              <img 
+              src={settingsicon}
+              alt="settings" 
+              style={{ width: "30px", height: "30px" }} 
+              />
+            </button>
           </div>
         </header>
 
         <section className="filter-bar">
           <span>Filter By:</span>
-          <button className="filter-btn">Date Range ▼</button>
-          <button className="filter-btn">Status ▼</button>
-          <button className="filter-btn">Payees ▼</button>
+          <button className="filter-btn" onClick={() => {
+          const start = prompt("Enter start date (YYYY-MM-DD):");
+          const end = prompt("Enter end date (YYYY-MM-DD):");
+          if (start && end) setDateFilter({ start, end });
+          }}>Date Range ▼</button>
+
+        <button className="filter-btn" onClick={() => {
+          const status = prompt("Enter status (Pending, Approved, Failed):") || "All";
+          setStatusFilter(status);
+          }}>Status ▼</button>
+
+        <button className="filter-btn" onClick={() => {
+          const payee = prompt("Enter payee name:") || "All";
+          setPayeeFilter(payee);
+          }}>Payees ▼</button>
         </section>
 
         <section className="report-table">
@@ -97,14 +131,14 @@ export default function Sumarry() {
               </tr>
             </thead>
             <tbody>
-              {reports.length === 0 ? (
+              {filteredReports.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="no-data">
                     No reports available. Submit a disbursement first.
                   </td>
                 </tr>
               ) : (
-                reports.map((r, i) => (
+                filteredReports.map((r, i) => (
                   <tr key={i}>
                     <td>{r.date}</td>
                     <td>{r.recipient}</td>
