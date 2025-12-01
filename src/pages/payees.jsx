@@ -5,10 +5,11 @@ import logo from "./logo.png"
 import { NavLink, useNavigate } from "react-router-dom"
 import { AppContext } from "../AppContext"
 import settingsicon from "./settingsicon.png"
+import { supabase } from "../lib/supabase"
 
 export default function Payees() {
   const navigate = useNavigate()
-  const { payees, setPayees, totalRequested } = useContext(AppContext)
+  const { payees, setPayees, totalRequested, updatePayeeDetails, loadAllData } = useContext(AppContext)
   const [selectedPayee, setSelectedPayee] = useState(null)
   const [selectedIndex, setSelectedIndex] = useState(null)
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -42,7 +43,7 @@ export default function Payees() {
       contactNumber: payee.contact || "",
       tin: payee.tin || "",
       address: payee.address || "",
-      contactPerson: payee.contactPerson || "",
+      contactPerson: payee.contact_person || "",
       account: payee.account || ""
     })
   }
@@ -57,31 +58,69 @@ export default function Payees() {
     setEditForm(prev => ({ ...prev, [name]: value }))
   }
 
-  function handleSave() {
+  async function handleSave() {
     const idx = selectedIndex ?? payees.findIndex(p => p.name === selectedPayee?.name)
     if (idx == null || idx === -1) {
       alert("Could not find payee to update.")
       return
     }
 
-    setPayees(prev => {
-      const updated = [...prev]
-      updated[idx] = {
-        ...updated[idx],
-        ...editForm
-      }
-      return updated
-    })
-    alert("Payee information updated.")
-    closeModal()
+    try {
+      await updatePayeeDetails(idx, {
+        name: editForm.name,
+        contact: editForm.contactNumber,
+        tin: editForm.tin,
+        address: editForm.address,
+        contactPerson: editForm.contactPerson,
+        account: editForm.account
+      })
+      alert("Payee information updated.")
+      closeModal()
+    } catch (error) {
+      console.error('Error updating payee:', error)
+      alert("Failed to update payee: " + error.message)
+    }
   }
 
-  function handleDelete(payeeName) {
+  async function handleDelete(payeeName) {
     const confirmed = window.confirm("Are you sure you want to delete this payee?")
-    if (confirmed) {
-      setPayees(prev => prev.filter(p => p.name !== payeeName))
+    if (!confirmed) return
+
+    try {
+      const payee = payees.find(p => p.name === payeeName)
+      if (!payee) {
+        alert("Payee not found.")
+        return
+      }
+
+      const { error } = await supabase
+        .from('payees')
+        .delete()
+        .eq('id', payee.id)
+
+      if (error) {
+        console.error('Error deleting payee:', error)
+        if (error.code === '42P01') {
+          alert("Database table 'payees' does not exist. Please check your database.")
+        } else {
+          throw error
+        }
+        return
+      }
+
+      // Reload all data from AppContext to ensure sync
+      if (loadAllData) {
+        await loadAllData()
+      } else {
+        // Fallback: update local state
+        setPayees(prev => prev.filter(p => p.id !== payee.id))
+      }
+      
       setSelectedPayee(null)
       alert("Payee deleted.")
+    } catch (error) {
+      console.error('Error deleting payee:', error)
+      alert("Failed to delete payee: " + error.message)
     }
   }
 
@@ -106,24 +145,105 @@ export default function Payees() {
     setAddForm(prev => ({ ...prev, [name]: value }))
   }
 
-  function handleAddSave() {
+  async function handleAddSave() {
     if (!addForm.name.trim()) {
       alert("Name is required.")
       return
     }
-    setPayees(prev => [
-      ...prev,
-      {
-        name: addForm.name,
-        contact: addForm.contactNumber,
-        tin: addForm.tin,
-        address: addForm.address,
-        contactPerson: addForm.contactPerson,
-        account: addForm.account || ""
+
+    try {
+      // Check if payee already exists (using payees table structure)
+      const { data: existingPayee, error: checkError } = await supabase
+        .from('payees')
+        .select('*')
+        .eq('name', addForm.name.trim())
+        .maybeSingle()
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking for existing payee:', checkError)
+        if (checkError.code === '42P01') {
+          alert("Database table 'payees' does not exist. Please check your database.")
+          return
+        }
       }
-    ])
-    setShowAddModal(false)
-    alert("Payee added.")
+
+      if (existingPayee) {
+        alert("A payee with this name already exists.")
+        return
+      }
+
+      // Insert into payees table (old structure)
+      const { data: newPayee, error } = await supabase
+        .from('payees')
+        .insert({
+          name: addForm.name.trim(),
+          contact: addForm.contactNumber || null,
+          tin: addForm.tin || null,
+          address: addForm.address || null,
+          contact_person: addForm.contactPerson || null,
+          account: addForm.account || null
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase error:', error)
+        console.error('Error details:', JSON.stringify(error, null, 2))
+        
+        if (error.code === '23505') {
+          alert("A payee with this name already exists.")
+        } else if (error.code === '42P01') {
+          alert("Database table 'payees' does not exist. Please check your database.")
+        } else if (error.message?.includes('permission denied') || error.message?.includes('RLS')) {
+          alert("Permission denied. Please check Row Level Security policies in Supabase.")
+        } else {
+          alert("Failed to add payee: " + (error.message || error.code || 'Unknown error') + "\n\nCheck browser console for details.")
+        }
+        return
+      }
+
+      if (!newPayee) {
+        alert("Failed to add payee: No data returned")
+        return
+      }
+
+      // Reload all data from AppContext to ensure sync
+      if (loadAllData) {
+        await loadAllData()
+      }
+      
+      // Also update local state immediately for better UX
+      const mappedPayee = {
+        ...newPayee,
+        id: newPayee.id,
+        name: newPayee.name,
+        contact: newPayee.contact || '',
+        tin: newPayee.tin || '',
+        address: newPayee.address || '',
+        contactPerson: newPayee.contact_person || '',
+        account: newPayee.account || ''
+      }
+      setPayees(prev => {
+        // Check if already exists to avoid duplicates
+        const exists = prev.find(p => p.id === mappedPayee.id)
+        if (exists) return prev
+        return [...prev, mappedPayee]
+      })
+
+      setShowAddModal(false)
+      setAddForm({
+        name: "",
+        contactNumber: "",
+        tin: "",
+        address: "",
+        contactPerson: "",
+        account: ""
+      })
+      alert("Payee added successfully.")
+    } catch (error) {
+      console.error('Error adding payee:', error)
+      alert("Failed to add payee: " + (error.message || 'Unknown error'))
+    }
   }
 
   function handleLogout() {
@@ -165,7 +285,7 @@ export default function Payees() {
                                 </button>
                                 </div>
                               )}
-                          <h1 className="page-title">Summary</h1>
+                          <h1 className="page-title">Payees</h1>
                           <div className="top-controls">
                             <input className="search" placeholder="Search..." />
                             <button className="gear" aria-label="settings" onClick={() => setShowSettingsMenu(!showSettingsMenu)}>
@@ -206,7 +326,7 @@ export default function Payees() {
                     <td>{p.contact || ""}</td>
                     <td>{p.tin || ""}</td>
                     <td>{p.address || ""}</td>
-                    <td>{p.contactPerson || ""}</td>
+                    <td>{p.contact_person || ""}</td>
                     <td>
                       <button onClick={() => openModal(p, i)}>View</button>
                     </td>

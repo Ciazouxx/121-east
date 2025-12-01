@@ -41,15 +41,23 @@ export default function ChartOfAccounts() {
 
   // Load currentCOA on mount (when returning to page)
   useEffect(() => {
-    if (currentPayee) setPayeeName(currentPayee.name)
-    if (currentCOA && Object.keys(currentCOA).length) return
-    if (currentPayee) {
-      const saved = getPayeeCOA(currentPayee.name)
-      setCurrentCOA(saved || defaultCOA)
+    async function loadCOA() {
+      if (currentPayee) {
+        setPayeeName(currentPayee.name)
+        const saved = await getPayeeCOA(currentPayee.name)
+        if (saved) {
+          setCurrentCOA(saved)
+        } else {
+          // Initialize with default COA if none exists
+          setCurrentCOA(defaultCOA)
+          await updatePayeeCOA(currentPayee.name, defaultCOA)
+        }
+      }
     }
-  }, [])
+    loadCOA()
+  }, [currentPayee])
 
-  const handlePayeeEnter = (e) => {
+  const handlePayeeEnter = async (e) => {
     if (e.key !== "Enter") return
 
     const found = payees.find(p => p.name.toLowerCase() === payeeName.toLowerCase())
@@ -61,30 +69,36 @@ export default function ChartOfAccounts() {
     }
 
     setCurrentPayee(found)
-    const savedCOA = getPayeeCOA(found.name)
-    setCurrentCOA(savedCOA || defaultCOA)
+    const savedCOA = await getPayeeCOA(found.name)
+    if (savedCOA) {
+      setCurrentCOA(savedCOA)
+    } else {
+      // Initialize with default COA if none exists
+      setCurrentCOA(defaultCOA)
+      await updatePayeeCOA(found.name, defaultCOA)
+    }
   }
 
-  const handleAddAccount = () => {
+  const handleAddAccount = async () => {
     if (!newAccountName.trim() || !currentPayee) return
 
     // Prevent duplicate names in selected table
-    if (currentCOA[selectedTable].some(acc => acc.name.toLowerCase() === newAccountName.toLowerCase())) {
+    if (currentCOA[selectedTable]?.some(acc => acc.name.toLowerCase() === newAccountName.toLowerCase())) {
       alert("This account already exists in the selected table.")
       return
     }
 
     const table = selectedTable
-    const lastNumber = currentCOA[table].length
+    const lastNumber = currentCOA[table]?.length
       ? currentCOA[table][currentCOA[table].length - 1].number
       : table === "Liabilities" ? 2000
         : table === "Revenues" ? 3000
           : 4000
 
-    const newAccount = { number: lastNumber + 1, name: newAccountName }
-    const updatedCOA = { ...currentCOA, [table]: [...currentCOA[table], newAccount] }
+    const newAccount = { number: lastNumber + 1, name: newAccountName, debit: 0, credit: 0 }
+    const updatedCOA = { ...currentCOA, [table]: [...(currentCOA[table] || []), newAccount] }
 
-    updatePayeeCOA(currentPayee.name, updatedCOA)
+    await updatePayeeCOA(currentPayee.name, updatedCOA)
     setCurrentCOA(updatedCOA)
     closeModal()
   }

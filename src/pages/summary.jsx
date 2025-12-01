@@ -114,7 +114,7 @@ export default function Summary() {
                         </button>
                         </div>
                       )}
-                  <h1 className="page-title">Summar</h1>
+                  <h1 className="page-title">Summary</h1>
                   <div className="top-controls">
                     <input className="search" placeholder="Search..." />
                     <button className="gear" aria-label="settings" onClick={() => setShowSettingsMenu(!showSettingsMenu)}>

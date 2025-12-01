@@ -74,7 +74,7 @@ export default function Disbursement() {
     setForm(prev => ({ ...prev, [name]: value }))
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
 
     if (!form.name || !form.amount || !form.method) {
@@ -94,7 +94,7 @@ export default function Disbursement() {
 
     const manualNum = Number(form.manualAccountNumber)
     if (manualNum) {
-      const payeeChart = getPayeeCOA(payeeName)
+      const payeeChart = await getPayeeCOA(payeeName)
       const baseCOA = payeeChart ? JSON.parse(JSON.stringify(payeeChart)) : JSON.parse(JSON.stringify(defaultCOA))
 
       let manualAccount = null
@@ -115,7 +115,7 @@ export default function Disbursement() {
       return
     }
 
-    addDisbursement({ ...form })
+    await addDisbursement({ ...form })
 
     alert("Disbursement submitted and pending approval.")
 
