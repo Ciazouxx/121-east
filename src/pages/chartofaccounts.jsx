@@ -1,304 +1,297 @@
-import React, { useContext, useState, useEffect } from "react"
-import "./dashboard.css"
-import "./chartofaccounts.css"
-import logo from "./logo.png"
-import { NavLink, useNavigate } from "react-router-dom"
-import { AppContext } from "../AppContext"
-import settingsicon from "./settingsicon.png"
+import React, { useContext, useState, useEffect, useMemo } from "react";
+// Removed useNavigate as it was unused in the provided snippet
+import { AppContext } from "../AppContext";
+import "./dashboard.css";
+import "./chartofaccounts.css";
+import Sidebar from "../Sidebar";
 
 export default function ChartOfAccounts() {
-  const navigate = useNavigate()
   const {
-    payees,
-    getPayeeCOA,
-    updatePayeeCOA,
-    currentPayee,
-    setCurrentPayee,
-    currentCOA,
-    setCurrentCOA,
-    defaultCOA,
-    totalRequested
-  } = useContext(AppContext)
+    accounts = [],
+    deleteAccount,
+    updateAccount,
+    addAccount,
+  } = useContext(AppContext);
 
-  const [payeeName, setPayeeName] = useState("")
-  const [showModal, setShowModal] = useState(false)
-  const [selectedTable, setSelectedTable] = useState("Liabilities")
-  const [newAccountName, setNewAccountName] = useState("")
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const [showAccountModal, setShowAccountModal] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
+  // State for Edit Modal
+  const [editingAccount, setEditingAccount] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    accountName: "",
+    accountType: "",
+  });
 
-  
+  // State for Add Modal
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newAccountData, setNewAccountData] = useState({
+    accountNo: "",
+    accountName: "",
+    accountType: "Asset",
+  });
 
-  const handleLogout = () => navigate("/")
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const openModal = () => setShowModal(true)
-  const closeModal = () => {
-    setShowModal(false)
-    setNewAccountName("")
-    setSelectedTable("Liabilities")
-  } 
-
-  // Load currentCOA on mount (when returning to page)
+  // Sync edit form data when editingAccount changes
   useEffect(() => {
-    async function loadCOA() {
-      if (currentPayee) {
-        setPayeeName(currentPayee.name)
-        const saved = await getPayeeCOA(currentPayee.name)
-        if (saved) {
-          setCurrentCOA(saved)
-        } else {
-          // Initialize with default COA if none exists
-          setCurrentCOA(defaultCOA)
-          await updatePayeeCOA(currentPayee.name, defaultCOA)
-        }
-      }
+    if (editingAccount) {
+      setEditFormData({
+        accountName: editingAccount.accountName,
+        accountType: editingAccount.accountType,
+      });
     }
-    loadCOA()
-  }, [currentPayee])
+  }, [editingAccount]);
 
-  const handlePayeeEnter = async (e) => {
-    if (e.key !== "Enter") return
+  // --- Handlers ---
 
-    const found = payees.find(p => p.name.toLowerCase() === payeeName.toLowerCase())
-    if (!found) {
-      setCurrentPayee(null)
-      setCurrentCOA({})
-      alert("This payee does not exist.")
-      return
+  const handleEdit = (account) => {
+    setEditingAccount(account);
+  };
+
+  const handleDelete = async (accountNo) => {
+    if (!window.confirm("Are you sure you want to delete this account?"))
+      return;
+    await deleteAccount(accountNo);
+  };
+
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    const success = await updateAccount(editingAccount.accountNo, editFormData);
+    if (success) {
+      setEditingAccount(null);
     }
+  };
 
-    setCurrentPayee(found)
-    const savedCOA = await getPayeeCOA(found.name)
-    if (savedCOA) {
-      setCurrentCOA(savedCOA)
+  const handleAddFormChange = (e) => {
+    const { name, value } = e.target;
+    setNewAccountData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddNewAccount = async (e) => {
+    e.preventDefault();
+    // addAccount returns true on success
+    const success = await addAccount(newAccountData);
+    if (success) {
+      setIsAddModalOpen(false);
+      setNewAccountData({
+        accountNo: "",
+        accountName: "",
+        accountType: "Asset",
+      });
     } else {
-      // Initialize with default COA if none exists
-      setCurrentCOA(defaultCOA)
-      await updatePayeeCOA(found.name, defaultCOA)
+      alert("Failed to add account. Account No. might already exist.");
     }
-  }
+  };
 
-  const handleAddAccount = async () => {
-    if (!newAccountName.trim() || !currentPayee) return
+  const openAddModal = () => {
+    setIsAddModalOpen(true);
+  };
 
-    // Prevent duplicate names in selected table
-    if (currentCOA[selectedTable]?.some(acc => acc.name.toLowerCase() === newAccountName.toLowerCase())) {
-      alert("This account already exists in the selected table.")
-      return
-    }
+  // --- Filtering & Sorting ---
 
-    const table = selectedTable
-    const lastNumber = currentCOA[table]?.length
-      ? currentCOA[table][currentCOA[table].length - 1].number
-      : table === "Liabilities" ? 2000
-        : table === "Revenues" ? 3000
-          : 4000
+  const filteredAccounts = useMemo(() => {
+    return accounts
+      .filter((account) => {
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+        if (!lowerCaseSearchTerm) return true;
 
-    const newAccount = { number: lastNumber + 1, name: newAccountName, debit: 0, credit: 0 }
-    const updatedCOA = { ...currentCOA, [table]: [...(currentCOA[table] || []), newAccount] }
-
-    await updatePayeeCOA(currentPayee.name, updatedCOA)
-    setCurrentCOA(updatedCOA)
-    closeModal()
-  }
+        return (
+          String(account.accountNo)
+            .toLowerCase()
+            .includes(lowerCaseSearchTerm) ||
+          account.accountName.toLowerCase().includes(lowerCaseSearchTerm) ||
+          account.accountType.toLowerCase().includes(lowerCaseSearchTerm)
+        );
+      })
+      .sort((a, b) => Number(a.accountNo) - Number(b.accountNo)); // Sort by Account No.
+  }, [accounts, searchTerm]);
 
   return (
     <div className="dash-root">
-      <aside className="sidebar">
-        <div className="logo-wrap">
-          <img src={logo} alt="logo" className="logo" />
-        </div>
-        <nav className="nav">
-          <NavLink to="/dashboard" className="nav-item">Dashboard</NavLink>
-          <NavLink to="/disbursement" className="nav-item">Disbursement</NavLink>
-          <NavLink to="/payees" className="nav-item">Payees</NavLink>
-          <NavLink to="/summary" className="nav-item">Summary</NavLink>
-          <NavLink to="/chartofaccounts" className="nav-item active">Chart of Accounts</NavLink>
-        </nav>
-        <button className="logout" onClick={handleLogout}>Log Out</button>
-      </aside>
+      <Sidebar />
 
       <main className="main">
         <header className="topbar">
-                {showSettingsMenu && (
-                  <div className="settings-menu">
-                    <button className="settings-item" onClick={() => {
-                      setShowAccountModal(true);
-                      setShowSettingsMenu(false);
-                }}>
-                  My Account
-                </button>
-
-                <button className="settings-item" onClick={() => {
-                  setShowStatusModal(true);
-                  setShowSettingsMenu(false);
-                }}>
-                  Account Status
-                </button>
-                </div>
-              )}
-          <h1 className="page-title">Chart Of Accounts</h1>
+          <h1 className="page-title">Chart of Accounts</h1>
           <div className="top-controls">
-            <input className="search" placeholder="Search..." />
-            <button className="gear" aria-label="settings" onClick={() => setShowSettingsMenu(!showSettingsMenu)}>
-            <img 
-              src={settingsicon}
-              alt="settings" 
-              style={{ width: "30px", height: "30px" }} 
+            <input
+              className="search"
+              placeholder="Search by No., Name, or Type..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </button>
+            <button className="btn-add-account" onClick={openAddModal}>
+              + Add Account
+            </button>
           </div>
         </header>
 
-        <div className="coa-buttons">
-          <input
-            className="coa-input-top"
-            placeholder="Enter payee name"
-            value={payeeName}
-            onChange={e => setPayeeName(e.target.value)}
-            onKeyDown={handlePayeeEnter}
-          />
-          {currentPayee && <button onClick={openModal} style={{ marginLeft: "10px" }}>Add Account</button>}
-        </div>
-
-          <div className="coa-center-wrap">
-          <div className="coa-card">
-          {!currentPayee ? (
-          <p style={{ textAlign: "center", marginTop: "50px", color: "black" }}>
-            Enter the payee's name to see their chart of accounts
-          </p>
-        ) : (
-        <>
-        <h3 style={{ marginBottom: "5px"}}>{currentPayee.name}'s Chart of Accounts</h3>
-        {["Assets", "Liabilities", "Revenues", "Expenses"].map(section => (
-          <table key={section} className="coa-section-table">
-            <thead>
-              <tr><th colSpan="4" className="section-header">{section}</th></tr>
-              <tr>
-                <th>Account Number</th>
-                <th>Account Name</th>
-                <th>Debit</th>
-                <th>Credit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentCOA[section]?.map(acc => (
-                <tr key={acc.number}>
-                  <td>{acc.number}</td>
-                  <td>{acc.name}</td>
-                  <td>{acc.debit || 0}</td> 
-                  <td>{acc.credit || 0}</td>
+        <section className="coa-table-container">
+          <div className="coa-table-wrapper">
+            <table className="coa-table">
+              <thead>
+                <tr>
+                  <th>Account Code</th>
+                  <th>Account Name</th>
+                  <th>Account Type</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ))}
-
-        <table className="coa-section-table">
-          <thead>
-            <tr><th colSpan="4" className="section-header">Totals</th></tr>
-            <tr>
-              <th colSpan="2">Total</th>
-              <th>Debit</th>
-              <th>Credit</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colSpan="2"></td>
-              <td>{Object.values(currentCOA).flat().reduce((sum, acc) => sum + (acc.debit || 0), 0)}</td>
-              <td>{Object.values(currentCOA).flat().reduce((sum, acc) => sum + (acc.credit || 0), 0)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </>
-    )}
-  </div>
-  </div>
-
-        {showModal && (
-          <div className="modal-overlay">
-            <div className="modal">
-              <h3>Add New Account</h3>
-              <label>
-                Table:
-                <select value={selectedTable} onChange={(e) => setSelectedTable(e.target.value)}>
-                  <option value="Liabilities">Liabilities</option>
-                  <option value="Revenues">Revenues</option>
-                  <option value="Expenses">Expenses</option>
-                </select>
-              </label>
-              <label>
-                Account Name:
-                <input
-                  type="text"
-                  value={newAccountName}
-                  onChange={(e) => setNewAccountName(e.target.value)}
-                />
-              </label>
-              <div style={{ marginTop: "15px" }}>
-                <button onClick={handleAddAccount}>Add</button>
-                <button onClick={closeModal} style={{ marginLeft: "10px" }}>Cancel</button>
-              </div>
-            </div>
+              </thead>
+              <tbody>
+                {filteredAccounts.length > 0 ? (
+                  filteredAccounts.map((account) => (
+                    <tr key={account.accountNo}>
+                      <td>{account.accountNo}</td>
+                      <td>{account.accountName}</td>
+                      <td>{account.accountType}</td>
+                      <td>
+                        <button
+                          className="btn-edit"
+                          onClick={() => handleEdit(account)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn-delete"
+                          onClick={() => handleDelete(account.accountNo)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: "center" }}>
+                      No accounts found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
-        {showAccountModal && (
-        <div className="modal-backdrop" onClick={() => setShowAccountModal(false)}>
-          <div className="account-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>My Account</h2>
+        </section>
+      </main>
 
-            <div className="field-row">
-              <label>Username:</label>
-              <div className="info-row">
-                <span>yourusername</span>
-                <button className="change-btn">Change Username</button>
+      {/* --- Edit Modal --- */}
+      {editingAccount && (
+        <div className="modal-overlay">
+          <div className="edit-modal">
+            <h2>Edit Account</h2>
+            <form onSubmit={handleSaveEdit}>
+              <div className="form-group">
+                <label>Account No.</label>
+                <input type="text" value={editingAccount.accountNo} disabled />
               </div>
-            </div>
-
-            <div className="field-row">
-              <label>Email:</label>
-              <span>your@email.com</span>
-            </div>
-
-            <div className="field-row">
-              <label>Contact Number:</label>
-              <span>09123456789</span>
-            </div>
-
-            <div className="field-row">
-              <label>Password:</label>
-              <div className="info-row">
-              <span>*********</span>
-              <button className="change-btn">Change Password</button>
-            </div>
-            </div>
-
-            <button className="close-modal" onClick={() => setShowAccountModal(false)}>Close</button>
+              <div className="form-group">
+                <label htmlFor="accountName">Account Name</label>
+                <input
+                  id="accountName"
+                  name="accountName"
+                  type="text"
+                  value={editFormData.accountName}
+                  onChange={handleEditFormChange}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="accountType">Account Type</label>
+                <select
+                  id="accountType"
+                  name="accountType"
+                  value={editFormData.accountType}
+                  onChange={handleEditFormChange}
+                  required
+                >
+                  <option value="Asset">Asset</option>
+                  <option value="Liability">Liability</option>
+                  <option value="Equity">Equity</option>
+                  <option value="Revenue">Revenue</option>
+                  <option value="Expense">Expense</option>
+                </select>
+              </div>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setEditingAccount(null)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-save">
+                  Save Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-        {showStatusModal && (
-          <div className="modal-backdrop" onClick={() => setShowStatusModal(false)}>
-            <div className="status-modal" onClick={(e) => e.stopPropagation()}>
-              <h2>Account Status</h2>
 
-              <div className="status-row">
-                <span>Total Requested Disbursements: </span>
-                <span>{totalRequested}</span>
+      {/* --- Add Modal --- */}
+      {isAddModalOpen && (
+        <div className="modal-overlay">
+          <div className="edit-modal">
+            <h2>Add New Account</h2>
+            <form onSubmit={handleAddNewAccount}>
+              <div className="form-group">
+                <label htmlFor="accountNo">Account No.</label>
+                <input
+                  id="accountNo"
+                  name="accountNo"
+                  type="text"
+                  value={newAccountData.accountNo}
+                  onChange={handleAddFormChange}
+                  required
+                  placeholder="e.g., 101"
+                />
               </div>
-
-              <div className="status-row">
-                <span>Login History: </span>
-                <span>0</span>
+              <div className="form-group">
+                <label htmlFor="newAccountName">Account Name</label>
+                <input
+                  id="newAccountName"
+                  name="accountName"
+                  type="text"
+                  value={newAccountData.accountName}
+                  onChange={handleAddFormChange}
+                  required
+                  placeholder="e.g., Cash"
+                />
               </div>
-
-              <button className="close-modal" onClick={() => setShowStatusModal(false)}>Close</button>
-            </div>
+              <div className="form-group">
+                <label htmlFor="newAccountType">Account Type</label>
+                <select
+                  id="newAccountType"
+                  name="accountType"
+                  value={newAccountData.accountType}
+                  onChange={handleAddFormChange}
+                  required
+                >
+                  <option value="Asset">Asset</option>
+                  <option value="Liability">Liability</option>
+                  <option value="Equity">Equity</option>
+                  <option value="Revenue">Revenue</option>
+                  <option value="Expense">Expense</option>
+                </select>
+              </div>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setIsAddModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-save">
+                  Add Account
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
-  )
+  );
 }

@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import "./dashboard.css";
 import logo from "./logo.png";
-import chevIcon from "./arrowright.png"; 
+import chevIcon from "./arrowright.png";
 import warningIcon from "./warning.png";
 import settingsicon from "./settingsicon.png";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -9,12 +9,8 @@ import { AppContext } from "../AppContext";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const {
-    stats,
-    recentActivity,
-    pendingApprovals,
-    totalRequested,
-  } = useContext(AppContext);
+  const { stats, recentActivity, pendingApprovals, totalRequested } =
+    useContext(AppContext);
 
   const [showActions, setShowActions] = useState(null);
   const [modalCoords, setModalCoords] = useState(null);
@@ -27,17 +23,16 @@ export default function Dashboard() {
   }
 
   const handleToggleActions = (event, index) => {
-    
     if (showActions === index) {
       setShowActions(null);
       setModalCoords(null);
       return;
     }
-    
+
     const rect = event.currentTarget.getBoundingClientRect();
     setModalCoords({
-      top: rect.top, 
-      left: rect.left
+      top: rect.top,
+      left: rect.left,
     });
     setShowActions(index);
   };
@@ -77,33 +72,43 @@ export default function Dashboard() {
 
       <main className="main">
         <header className="topbar">
-                {showSettingsMenu && (
-                  <div className="settings-menu">
-                    <button className="settings-item" onClick={() => {
-                      setShowAccountModal(true);
-                      setShowSettingsMenu(false);
-                }}>
-                  My Account
-                </button>
+          {showSettingsMenu && (
+            <div className="settings-menu">
+              <button
+                className="settings-item"
+                onClick={() => {
+                  setShowAccountModal(true);
+                  setShowSettingsMenu(false);
+                }}
+              >
+                My Account
+              </button>
 
-                <button className="settings-item" onClick={() => {
+              <button
+                className="settings-item"
+                onClick={() => {
                   setShowStatusModal(true);
                   setShowSettingsMenu(false);
-                }}>
-                  Account Status
-                </button>
-                </div>
-              )}
+                }}
+              >
+                Account Status
+              </button>
+            </div>
+          )}
           <h1 className="page-title">Dashboard</h1>
           <div className="top-controls">
             <input className="search" placeholder="Search..." />
-            <button className="gear" aria-label="settings" onClick={() => setShowSettingsMenu(!showSettingsMenu)}>
-            <img 
-              src={settingsicon}
-              alt="settings" 
-              style={{ width: "30px", height: "30px" }} 
-            />
-          </button>
+            <button
+              className="gear"
+              aria-label="settings"
+              onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+            >
+              <img
+                src={settingsicon}
+                alt="settings"
+                style={{ width: "30px", height: "30px" }}
+              />
+            </button>
           </div>
         </header>
 
@@ -134,11 +139,14 @@ export default function Dashboard() {
               <ul className="activity-list">
                 {recentActivity.map((r, i) => {
                   const message = typeof r === "string" ? r : r.message || "";
-                  const dateStr = r && r.date ? new Date(r.date).toLocaleString() : null;
+                  const dateStr =
+                    r && r.date ? new Date(r.date).toLocaleString() : null;
                   return (
                     <li key={i}>
                       <div className="activity-message">{message}</div>
-                      {dateStr && <div className="activity-date">{dateStr}</div>}
+                      {dateStr && (
+                        <div className="activity-date">{dateStr}</div>
+                      )}
                     </li>
                   );
                 })}
@@ -148,7 +156,8 @@ export default function Dashboard() {
 
           <div className="pending-card">
             <div className="card-title">Pending Approvals</div>
-            {pendingApprovals.filter(a => a.status === "Pending").length === 0 ? (
+            {pendingApprovals.filter((a) => a.status === "Pending").length ===
+            0 ? (
               <p className="empty-text">No pending disbursements.</p>
             ) : (
               <ul className="approvals-list">
@@ -173,74 +182,88 @@ export default function Dashboard() {
             )}
           </div>
         </section>
-       {showActions !== null && modalCoords && (
-         <div className="action-modal-backdrop" onClick={closeActionModal}>
-           <div
-             className="action-modal"
-             style={{ top: modalCoords.top + "px", left: modalCoords.left + "px" }}
-             onClick={(e) => e.stopPropagation()}
-           >
-             <div className="action-modal-row">
-               <button
-                 className="check-status"
-                 onClick={() => {
-                   navigate("/summary");
-                   closeActionModal();
-                 }}
-               >
-                 Open
-               </button>
-             </div>
-             <div className="action-modal-row">
-               <button
-                 className="close-btn"
-                 onClick={() => {
-                   closeActionModal();
-                 }}
-               >
-                 Close
-               </button>
-             </div>
-           </div>
-         </div>
-        )}
-        {showAccountModal && (
-        <div className="modal-backdrop" onClick={() => setShowAccountModal(false)}>
-          <div className="account-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>My Account</h2>
-
-            <div className="field-row">
-              <label>Username:</label>
-              <div className="info-row">
-                <span>yourusername</span>
-                <button className="change-btn">Change Username</button>
+        {showActions !== null && modalCoords && (
+          <div className="action-modal-backdrop" onClick={closeActionModal}>
+            <div
+              className="action-modal"
+              style={{
+                top: modalCoords.top + "px",
+                left: modalCoords.left + "px",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="action-modal-row">
+                <button
+                  className="check-status"
+                  onClick={() => {
+                    navigate("/summary");
+                    closeActionModal();
+                  }}
+                >
+                  Open
+                </button>
+              </div>
+              <div className="action-modal-row">
+                <button
+                  className="close-btn"
+                  onClick={() => {
+                    closeActionModal();
+                  }}
+                >
+                  Close
+                </button>
               </div>
             </div>
-
-            <div className="field-row">
-              <label>Email:</label>
-              <span>your@email.com</span>
-            </div>
-
-            <div className="field-row">
-              <label>Contact Number:</label>
-              <span>09123456789</span>
-            </div>
-
-            <div className="field-row">
-              <label>Password:</label>
-              <div className="info-row">
-              <span>*********</span>
-              <button className="change-btn">Change Password</button>
-            </div>
-            </div>
-
-            <button className="close-modal" onClick={() => setShowAccountModal(false)}>Close</button>
           </div>
-        </div>
-      )}
+        )}
+        {showAccountModal && (
+          <div
+            className="modal-backdrop"
+            onClick={() => setShowAccountModal(false)}
+          >
+            <div className="account-modal" onClick={(e) => e.stopPropagation()}>
+              <h2>My Account</h2>
+
+              <div className="field-row">
+                <label>Username:</label>
+                <div className="info-row">
+                  <span>yourusername</span>
+                  <button className="change-btn">Change Username</button>
+                </div>
+              </div>
+
+              <div className="field-row">
+                <label>Email:</label>
+                <span>your@email.com</span>
+              </div>
+
+              <div className="field-row">
+                <label>Contact Number:</label>
+                <span>09123456789</span>
+              </div>
+
+              <div className="field-row">
+                <label>Password:</label>
+                <div className="info-row">
+                  <span>*********</span>
+                  <button className="change-btn">Change Password</button>
+                </div>
+              </div>
+
+              <button
+                className="close-modal"
+                onClick={() => setShowAccountModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
         {showStatusModal && (
-          <div className="modal-backdrop" onClick={() => setShowStatusModal(false)}>
+          <div
+            className="modal-backdrop"
+            onClick={() => setShowStatusModal(false)}
+          >
             <div className="status-modal" onClick={(e) => e.stopPropagation()}>
               <h2>Account Status</h2>
 
@@ -254,11 +277,16 @@ export default function Dashboard() {
                 <span>0</span>
               </div>
 
-              <button className="close-modal" onClick={() => setShowStatusModal(false)}>Close</button>
+              <button
+                className="close-modal"
+                onClick={() => setShowStatusModal(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         )}
-       </main>
-     </div>
-   );
- }
+      </main>
+    </div>
+  );
+}

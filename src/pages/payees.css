@@ -1,74 +1,110 @@
 .content-table {
   margin-top: 20px;
-  max-width: 1000px;    /* width limit (975px) */
-  max-height: 480px;   /* height limit (476px) */
-  overflow: auto;
-  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  min-height: 550px;
 }
 
-/* ensure table layout stays stable inside scroll container */
 .payees-table {
   width: 100%;
-  table-layout: fixed; /* helps consistent column widths when scrolling */
-  background: #fff;
-  border: 1px solid #030303;
-  border-radius: 6px;
-  overflow: hidden;
+  border-collapse: collapse;
+  color: #333;
+  table-layout: fixed;
+}
+
+.payees-table thead th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.payees-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #e0e0e0;
+  word-wrap: break-word;
+}
+
+.payees-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.payees-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.empty-text {
+  text-align: center;
+  padding: 40px;
+  color: #777;
+  font-size: 16px;
+}
+
+.action-buttons button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.action-buttons button:hover {
+  background-color: #0056b3;
+}
+
+.add-payee-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.add-payee-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.add-payee-btn:hover {
+  background-color: #218838;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.pagination-controls button {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  margin: 0 5px;
+  cursor: pointer;
+  border-radius: 5px;
   color: black;
 }
 
-/* keep header visible when scrolling the table body */
-.payees-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: #f9f9f9;
+.pagination-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
-/* improve scrolling appearance */
-.content-table::-webkit-scrollbar,
-.payees-table::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-.content-table::-webkit-scrollbar-thumb,
-.payees-table::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.12);
-  border-radius: 6px;
-}
-
-.payees-table th,
-.payees-table td {
-  border: 1px solid #030303;
-  padding: 10px;
-  text-align: left;
-  font-size: 14px;
-
-  /* allow long names to wrap instead of overflowing */
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-/* give the Name column a fixed-ish width so it wraps nicely */
-.payees-table thead th:nth-child(1),
-.payees-table tbody td:nth-child(1) {
-  width: 30%;
-  max-width: 30%;
-}
-
-.payees-table th {
-  background: #f9f9f9;
-  font-weight: bold;
-}
-
-.payees-table a {
-  color: #1a4dab;
-  text-decoration: none;
-}
-
-.payees-table a:hover {
-  text-decoration: underline;
+.pagination-controls span {
+  margin: 0 10px;
+  font-size: 16px;
+  color: black;
 }
 
 .modal-overlay {
@@ -77,7 +113,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,138 +122,64 @@
 
 .modal {
   background: #fff;
-  padding: 20px;
+  padding: 25px;
   border-radius: 8px;
-  width: 400px;
-  color: black;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .modal h2 {
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  font-size: 24px;
+  color: #333;
 }
 
-.modal p {
-  margin: 6px 0;
+.form-row {
+  margin-bottom: 15px;
+}
+
+.form-row label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #555;
+}
+
+.form-row input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
 }
 
 .modal-actions {
-  margin-top: 15px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 25px;
 }
 
 .modal-actions button {
-  padding: 8px;
-  font-size: 14px;
+  padding: 10px 15px;
+  border-radius: 5px;
+  border: none;
   cursor: pointer;
+  font-size: 16px;
 }
 
-.delete-btn {
-  background: #b40000;
+.modal-actions .delete-btn {
+  background-color: #dc3545;
   color: white;
-  border: none;
 }
 
-.attach-label {
-  background: #e5e5e5;
-  padding: 8px;
-  text-align: center;
-  cursor: pointer;
-  border-radius: 4px;
+.modal-actions .delete-btn:hover {
+  background-color: #c82333;
 }
 
-/* new: container for the table-level actions (e.g. Add Payee) */
-.table-actions {
-  max-width: 975px;     /* match table width */
-  margin: 12px auto 0 auto;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  box-sizing: border-box;
-  padding: 0 6px;
-}
-
-/* restyle/add-payee button so it fits next to table */
-.add-payee {
-  background: var(--accent, #b85a5a);
-  color: #fff;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-}
-.add-payee:hover {
-  opacity: 0.95;
-}
-
-/* reduce top margin of content-table if needed */
-.content-table {
-  margin-top: 8px;
-  max-width: 975px;
-  max-height: 480px;
-  overflow: auto;
-  box-sizing: border-box;
-}
-
-/* container for the table-level actions (e.g. Add Payee) */
-.table-wrapper {
-  max-width: 1500px;
-  margin: 12px auto 0;
-  display: flex;
-  gap: 16px;
-  box-sizing: border-box;
-  align-items: stretch;
-}
-
-/* left column: payees table takes 80% */
-.table-wrapper .content-table {
-  flex: 0 0 80%;
-  max-width: 80%;
-  margin-top: 8px;
-  box-sizing: border-box;
-}
-
-/* right column: action area takes 20% and centers the button */
-.table-side {
-  flex: 0 0 20%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  box-sizing: border-box;
-}
-
-/* make add-payee fill the right column nicely */
-.add-payee {
-  width: 100%;
-  max-width: 160px;
-  background: var(--accent, #b85a5a);
-  color: #fff;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-}
-.add-payee:hover { opacity: 0.95; }
-
-/* responsive: stack on small screens */
-@media (max-width: 900px) {
-  .table-wrapper {
-    flex-direction: column;
-  }
-  .table-wrapper .content-table,
-  .table-side {
-    flex: none;
-    max-width: 100%;
-    width: 100%;
-  }
-  .add-payee {
-    max-width: none;
-    width: auto;
-  }
+.modal-actions button:first-child {
+  background-color: #007bff;
+  color: white;
 }

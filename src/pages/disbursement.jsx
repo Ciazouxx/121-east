@@ -1,28 +1,31 @@
-import React, { useState, useContext, useEffect } from "react"
-import "./dashboard.css"
-import "./disbursement.css"
-import logo from "../logo.png"
-import { NavLink, useNavigate } from "react-router-dom"
-import { AppContext } from "../AppContext"
-import settingsicon from "./settingsicon.png"
+import React, { useState, useContext, useEffect } from "react";
+import "./dashboard.css";
+import "./disbursement.css";
+import logo from "../logo.png";
+import { NavLink, useNavigate } from "react-router-dom";
+import { AppContext } from "../AppContext";
+import settingsicon from "./settingsicon.png";
 
 export default function Disbursement() {
-  const { addDisbursement, payees, getPayeeCOA, updatePayeeCOA, defaultCOA, refCounter, totalRequested } = useContext(AppContext)
-  const navigate = useNavigate()
+  const {
+    addDisbursement,
+    payees,
+    getPayeeCOA,
+    updatePayeeCOA,
+    accounts,
+    defaultCOA,
+    refCounter,
+    totalRequested,
+  } = useContext(AppContext);
+  const navigate = useNavigate();
 
-  const [manualAccountError, setManualAccountError] = useState(false)
-  const [nameError, setNameError] = useState(false)
+  const [manualAccountError, setManualAccountError] = useState(false);
+  const [nameError, setNameError] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
 
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false)
-  const [showAccountModal, setShowAccountModal] = useState(false)
-  const [showStatusModal, setShowStatusModal] = useState(false)
-
-  const accountMap = {
-    Cash: { number: "1001", name: "Cash on Hand" },
-    "Bank Transfer": { number: "1002", name: "Cash in Bank" },
-    "Online Payment": { number: "1003", name: "Online Payment Account" },
-    Check: { number: "1004", name: "Checks on Hand" }
-  }
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -32,92 +35,136 @@ export default function Disbursement() {
     contact: "",
     amount: "",
     date: "",
-    reason: ""
-  })
+    reason: "",
+  });
 
+  const [copiedRef, setCopiedRef] = useState(false);
+
+  const nextRefCounter = (typeof refCounter === "number" ? refCounter : 0) + 1;
+  const datePart = new Date().toISOString().split("T")[0].replace(/-/g, "");
+  const displayReference = `DISB-${datePart}-${String(nextRefCounter).padStart(
+    5,
+    "0"
+  )}`;
+
+  const selectedAccount = accounts.find(
+    (acc) => acc.accountNo === form.accountNumber
+  );
+
+  // Effect to handle date based on payment method
   useEffect(() => {
-    const d = new Date()
-    const yyyy = d.getFullYear()
-    const mm = String(d.getMonth() + 1).padStart(2, "0")
-    const dd = String(d.getDate()).padStart(2, "0")
-    setForm(prev => ({ ...prev, date: `${yyyy}-${mm}-${dd}` }))
-  }, [])
+    if (form.method === "Cash" || form.method === "Bank Transfer") {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const today = `${yyyy}-${mm}-${dd}`;
+      setForm((prev) => ({ ...prev, date: today }));
+    }
+  }, [form.method]);
 
   function handleChange(e) {
-    const { name, value } = e.target
+    const { name, value } = e.target;
 
     if (name === "name") {
-      setForm(prev => ({ ...prev, name: value }))
-      const q = value.trim()
+      const query = value.trim();
+      setForm((prev) => ({ ...prev, name: value }));
 
-      if (!q) {
-        setNameError(false)
-        return
+      if (!query) {
+        setNameError(false);
+        setSuggestions([]);
+        return;
       }
 
-      const names = (payees || []).map(p => p.name || "")
-      const exact = names.find(n => n.toLowerCase() === q.toLowerCase())
-      setNameError(!exact)
-      return
+      const lowerCaseQuery = query.toLowerCase();
+      const filteredSuggestions = (payees || [])
+        .map((p) => p.name || "")
+        .filter((pName) => pName.toLowerCase().includes(lowerCaseQuery));
+      setSuggestions(filteredSuggestions);
+
+      const exact = filteredSuggestions.find(
+        (n) => n.toLowerCase() === lowerCaseQuery
+      );
+      setNameError(!exact);
+      return;
     }
 
-    if (name === "method") {
-      const account = accountMap[value]
-      setForm(prev => ({
-        ...prev,
-        method: value,
-        accountNumber: account?.number || ""
-      }))
-      return
-    }
+    setForm((prev) => ({ ...prev, [name]: value }));
+  }
 
-    setForm(prev => ({ ...prev, [name]: value }))
+  function handleSuggestionClick(suggestion) {
+    setForm((prev) => ({ ...prev, name: suggestion }));
+    setSuggestions([]);
+    setNameError(false);
   }
 
   async function handleSubmit(e) {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!form.name || !form.amount || !form.method) {
-      alert("Please fill in the required fields.")
-      return
+    if (
+      !form.name ||
+      !form.amount ||
+      !form.method ||
+      !form.accountNumber ||
+      !form.contact ||
+      !form.date ||
+      !form.reason ||
+      !form.manualAccountNumber
+    ) {
+      alert("Please fill in all fields before submitting.");
+      return;
     }
 
-    const names = (payees || []).map(p => p.name || "")
-    const matched = names.find(n => n.toLowerCase() === form.name.toLowerCase())
+    const names = (payees || []).map((p) => p.name || "");
+    const matched = names.find(
+      (n) => n.toLowerCase() === form.name.toLowerCase()
+    );
     if (!matched) {
-      setNameError(true)
-      alert("The payee name is not in the payee's list.")
-      return
+      setNameError(true);
+      alert("The payee name is not in the payee's list.");
+      return;
     }
 
-    const payeeName = form.name.trim()
+    const payeeName = form.name.trim();
 
-    const manualNum = Number(form.manualAccountNumber)
-    if (manualNum) {
-      const payeeChart = await getPayeeCOA(payeeName)
-      const baseCOA = payeeChart ? JSON.parse(JSON.stringify(payeeChart)) : JSON.parse(JSON.stringify(defaultCOA))
+    // const manualNum = Number(form.manualAccountNumber);
+    // if (manualNum) {
+    //   const payeeChart = await getPayeeCOA(payeeName);
+    //   const baseCOA = payeeChart
+    //     ? JSON.parse(JSON.stringify(payeeChart))
+    //     : JSON.parse(JSON.stringify(defaultCOA));
+    // // const manualNum = Number(form.manualAccountNumber);
+    // // if (manualNum) {
+    // //   const payeeChart = await getPayeeCOA(payeeName);
+    // //   const baseCOA = payeeChart
+    // //     ? JSON.parse(JSON.stringify(payeeChart))
+    // //     : JSON.parse(JSON.stringify(defaultCOA));
 
-      let manualAccount = null
-      Object.keys(baseCOA).forEach(sec => {
-        const found = baseCOA[sec].find(acc => acc.number === manualNum)
-        if (found) manualAccount = found
-      })
+    //   let manualAccount = null;
+    //   Object.keys(baseCOA).forEach((sec) => {
+    //     const found = baseCOA[sec].find((acc) => acc.number === manualNum);
+    //     if (found) manualAccount = found;
+    //   });
+    // //   let manualAccount = null;
+    // //   Object.keys(baseCOA).forEach((sec) => {
+    // //     const found = baseCOA[sec].find((acc) => acc.number === manualNum);
+    // //     if (found) manualAccount = found;
+    // //   });
 
-      if (!manualAccount) {
-        alert("Invalid manual account number.")
-        return
-      }
-    }
+    //   if (!manualAccount) {
+    //     alert("Invalid manual account number.");
+    //     return;
+    //   }
+    // }
+    //   if (!manualAccount) {
+    //     alert("Invalid manual account number.");
+    //     return;
+    //   }
+    // }
 
-    const account = accountMap[form.method]
-    if (!account) {
-      alert("No mapped account code for this payment method.")
-      return
-    }
+    await addDisbursement({ ...form });
 
-    await addDisbursement({ ...form })
-
-    alert("Disbursement submitted and pending approval.")
+    alert("Disbursement submitted and pending approval.");
 
     setForm({
       name: "",
@@ -126,10 +173,10 @@ export default function Disbursement() {
       contact: "",
       amount: "",
       manualAccountNumber: "",
-      date: form.date,
-      reason: ""
-    })
-    setNameError(false)
+      date: "",
+      reason: "",
+    });
+    setNameError(false);
   }
 
   function handleClear() {
@@ -138,14 +185,14 @@ export default function Disbursement() {
       method: "",
       contact: "",
       amount: "",
-      date: form.date,
-      reason: ""
-    })
-    setNameError(false)
+      date: "",
+      reason: "",
+    });
+    setNameError(false);
   }
 
   function handleLogout() {
-    navigate("/")
+    navigate("/");
   }
 
   return (
@@ -156,26 +203,37 @@ export default function Disbursement() {
         </div>
 
         <nav className="nav">
-          <NavLink to="/dashboard" className="nav-item">Dashboard</NavLink>
-          <NavLink to="/disbursement" className="nav-item">Disbursement</NavLink>
-          <NavLink to="/payees" className="nav-item">Payees</NavLink>
-          <NavLink to="/summary" className="nav-item">Summary</NavLink>
-          <NavLink to="/chartofaccounts" className="nav-item">Chart of Accounts</NavLink>
+          <NavLink to="/dashboard" className="nav-item">
+            Dashboard
+          </NavLink>
+          <NavLink to="/disbursement" className="nav-item">
+            Disbursement
+          </NavLink>
+          <NavLink to="/payees" className="nav-item">
+            Payees
+          </NavLink>
+          <NavLink to="/summary" className="nav-item">
+            Summary
+          </NavLink>
+          <NavLink to="/chartofaccounts" className="nav-item">
+            Chart of Accounts
+          </NavLink>
         </nav>
 
-        <button className="logout" onClick={handleLogout}>Log Out</button>
+        <button className="logout" onClick={handleLogout}>
+          Log Out
+        </button>
       </aside>
 
       <main className="main">
         <header className="topbar">
-
           {showSettingsMenu && (
             <div className="settings-menu">
               <button
                 className="settings-item"
                 onClick={() => {
-                  setShowAccountModal(true)
-                  setShowSettingsMenu(false)
+                  setShowAccountModal(true);
+                  setShowSettingsMenu(false);
                 }}
               >
                 My Account
@@ -184,8 +242,8 @@ export default function Disbursement() {
               <button
                 className="settings-item"
                 onClick={() => {
-                  setShowStatusModal(true)
-                  setShowSettingsMenu(false)
+                  setShowStatusModal(true);
+                  setShowSettingsMenu(false);
                 }}
               >
                 Account Status
@@ -202,7 +260,7 @@ export default function Disbursement() {
               aria-label="settings"
               onClick={() => setShowSettingsMenu(!showSettingsMenu)}
             >
-              <img 
+              <img
                 src={settingsicon}
                 alt="settings"
                 style={{ width: "30px", height: "30px" }}
@@ -213,21 +271,40 @@ export default function Disbursement() {
 
         <section className="disb-form">
           <form className="form-card" onSubmit={handleSubmit}>
-            
             <div className="form-row">
               <label>Name Of Payee:</label>
-              <input
-                name="name"
-                type="text"
-                placeholder="Enter the name of the payee..."
-                value={form.name}
-                onChange={handleChange}
-                className={nameError ? "input-error" : ""}
-              />
+              <div className="autocomplete-wrapper">
+                <input
+                  name="name"
+                  type="text"
+                  placeholder="Enter the name of the payee..."
+                  value={form.name}
+                  onChange={handleChange}
+                  className={`full-width-input ${
+                    nameError ? "input-error" : ""
+                  }`}
+                  autoComplete="off"
+                />
+                {suggestions.length > 0 && (
+                  <ul className="suggestions-list">
+                    {suggestions.map((suggestion, index) => (
+                      <li
+                        key={index}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <div className="error-holder">
-              {nameError && 
-                  <span className="error-text">Payee not found in the list.</span>}
-                </div>
+                {nameError && (
+                  <span className="error-text">
+                    Payee not found. Please add them in the Payees page.
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="form-row inline">
@@ -240,8 +317,36 @@ export default function Disbursement() {
                 <option>Check</option>
               </select>
 
-              <label>Account Number:</label>
-              <input type="text" value={form.accountNumber} disabled />
+              <label>Account Code:</label>
+              <select
+                name="accountNumber"
+                value={form.accountNumber}
+                onChange={handleChange}
+              >
+                <option value="">Choose account</option>
+                {Object.entries(
+                  (accounts || []).reduce((acc, account) => {
+                    const { accountType } = account;
+                    if (!acc[accountType]) acc[accountType] = [];
+                    acc[accountType].push(account);
+                    return acc;
+                  }, {})
+                ).map(([type, accountList]) => (
+                  <optgroup key={type} label={type}>
+                    {accountList.map((account) => (
+                      <option key={account.accountNo} value={account.accountNo}>
+                        {account.accountNo}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              <input
+                type="text"
+                disabled
+                placeholder="Account Name"
+                value={selectedAccount ? selectedAccount.accountName : ""}
+              />
             </div>
 
             <div className="form-row">
@@ -252,6 +357,7 @@ export default function Disbursement() {
                 placeholder="Phone number or email..."
                 value={form.contact}
                 onChange={handleChange}
+                className="full-width-input"
               />
             </div>
 
@@ -275,7 +381,15 @@ export default function Disbursement() {
               />
 
               <label>Date:</label>
-              <input name="date" type="text" value={form.date} disabled />
+              <input
+                name="date"
+                type="date"
+                value={form.date}
+                onChange={handleChange}
+                disabled={
+                  form.method === "Cash" || form.method === "Bank Transfer"
+                }
+              />
             </div>
 
             {manualAccountError && (
@@ -292,14 +406,42 @@ export default function Disbursement() {
                 placeholder="Type here..."
                 value={form.reason}
                 onChange={handleChange}
+                className="full-width-input"
               />
             </div>
 
             <div className="form-actions">
               <label>Reference Code:</label>
-              <input type="text" disabled value={String(refCounter).padStart(5, "0")} />
+              <div className="ref-actions">
+                <input
+                  type="text"
+                  readOnly
+                  value={displayReference}
+                  aria-label="Reference Code"
+                />
+                <button
+                  type="button"
+                  className="copy-ref"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(displayReference);
+                      setCopiedRef(true);
+                      setTimeout(() => setCopiedRef(false), 1500);
+                    } catch (err) {
+                      alert("Unable to copy reference code");
+                    }
+                  }}
+                >
+                  Copy
+                </button>
+                {copiedRef && <span className="copied-msg">Copied!</span>}
+              </div>
 
-              <button type="button" className="btn cancel" onClick={handleClear}>
+              <button
+                type="button"
+                className="btn cancel"
+                onClick={handleClear}
+              >
                 Clear All
               </button>
 
@@ -311,8 +453,11 @@ export default function Disbursement() {
         </section>
 
         {showAccountModal && (
-          <div className="modal-backdrop" onClick={() => setShowAccountModal(false)}>
-            <div className="account-modal" onClick={e => e.stopPropagation()}>
+          <div
+            className="modal-backdrop"
+            onClick={() => setShowAccountModal(false)}
+          >
+            <div className="account-modal" onClick={(e) => e.stopPropagation()}>
               <h2>My Account</h2>
 
               <div className="field-row">
@@ -341,7 +486,10 @@ export default function Disbursement() {
                 </div>
               </div>
 
-              <button className="close-modal" onClick={() => setShowAccountModal(false)}>
+              <button
+                className="close-modal"
+                onClick={() => setShowAccountModal(false)}
+              >
                 Close
               </button>
             </div>
@@ -349,8 +497,11 @@ export default function Disbursement() {
         )}
 
         {showStatusModal && (
-          <div className="modal-backdrop" onClick={() => setShowStatusModal(false)}>
-            <div className="status-modal" onClick={e => e.stopPropagation()}>
+          <div
+            className="modal-backdrop"
+            onClick={() => setShowStatusModal(false)}
+          >
+            <div className="status-modal" onClick={(e) => e.stopPropagation()}>
               <h2>Account Status</h2>
 
               <div className="status-row">
@@ -363,7 +514,10 @@ export default function Disbursement() {
                 <span>0</span>
               </div>
 
-              <button className="close-modal" onClick={() => setShowStatusModal(false)}>
+              <button
+                className="close-modal"
+                onClick={() => setShowStatusModal(false)}
+              >
                 Close
               </button>
             </div>
@@ -371,5 +525,5 @@ export default function Disbursement() {
         )}
       </main>
     </div>
-  )
+  );
 }

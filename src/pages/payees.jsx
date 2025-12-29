@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react"
+import React, { useContext, useState, useRef } from "react"
 import "./dashboard.css"
 import "./payees.css"
 import logo from "./logo.png"
@@ -23,6 +23,9 @@ export default function Payees() {
     contactPerson: "",
     account: ""
   })
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const tableRef = useRef(null);
 
   // Add Payee modal state
   const [showAddModal, setShowAddModal] = useState(false)
@@ -34,6 +37,30 @@ export default function Payees() {
     contactPerson: "",
     account: ""
   })
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentPayees = payees.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(payees.length / itemsPerPage);
+
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      if (tableRef.current) {
+        tableRef.current.scrollTop = 0;
+      }
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      if (tableRef.current) {
+        tableRef.current.scrollTop = 0;
+      }
+    }
+  };
 
   function openModal(payee, index) {
     setSelectedPayee(payee)
@@ -267,67 +294,68 @@ export default function Payees() {
       </aside>
 
       <main className="main">
-         <header className="topbar">
-                                {showSettingsMenu && (
-                                  <div className="settings-menu">
-                                    <button className="settings-item" onClick={() => {
-                                      setShowAccountModal(true);
-                                      setShowSettingsMenu(false);
-                                }}>
-                                  My Account
-                                </button>
-                
-                                <button className="settings-item" onClick={() => {
-                                  setShowStatusModal(true);
-                                  setShowSettingsMenu(false);
-                                }}>
-                                  Account Status
-                                </button>
-                                </div>
-                              )}
-                          <h1 className="page-title">Payees</h1>
-                          <div className="top-controls">
-                            <input className="search" placeholder="Search..." />
-                            <button className="gear" aria-label="settings" onClick={() => setShowSettingsMenu(!showSettingsMenu)}>
-                            <img 
-                              src={settingsicon}
-                              alt="settings" 
-                              style={{ width: "30px", height: "30px" }} 
-                            />
-                          </button>
-                          </div>
-                        </header>
+        <header className="topbar">
+          {showSettingsMenu && (
+            <div className="settings-menu">
+              <button className="settings-item" onClick={() => {
+                setShowAccountModal(true);
+                setShowSettingsMenu(false);
+              }}>
+                My Account
+              </button>
+              <button className="settings-item" onClick={() => {
+                setShowStatusModal(true);
+                setShowSettingsMenu(false);
+              }}>
+                Account Status
+              </button>
+            </div>
+          )}
+          <h1 className="page-title">Payees</h1>
+          <div className="top-controls">
+            <input className="search" placeholder="Search..." />
+            <button className="gear" aria-label="settings" onClick={() => setShowSettingsMenu(!showSettingsMenu)}>
+              <img 
+                src={settingsicon}
+                alt="settings" 
+                style={{ width: "30px", height: "30px" }} 
+              />
+            </button>
+          </div>
+        </header>
 
-        {/* table plus right-side action column */}
-        <div className="table-wrapper">
-          <section className="content-table">
-            <table className="payees-table">
-             <thead>
-               <tr>
-                 <th>Name</th>
-                 <th>Contact Number</th>
-                 <th>TIN Number</th>
-                 <th>Address</th>
-                 <th>Contact Person</th>
-                 <th>Actions</th>
-               </tr>
-             </thead>
-             <tbody>
-              {payees.length === 0 ? (
+        <div className="add-payee-container">
+          <button className="add-payee-btn" onClick={openAddModal}>Add Payee</button>
+        </div>
+
+        <div className="content-table" ref={tableRef}>
+          <table className="payees-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Contact Number</th>
+                <th>TIN Number</th>
+                <th>Address</th>
+                <th>Contact Person</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentPayees.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="empty-text">
                     No payees yet. Click add payee to add one.
                   </td>
                 </tr>
               ) : (
-                payees.map((p, i) => (
+                currentPayees.map((p, i) => (
                   <tr key={i}>
                     <td>{p.name}</td>
                     <td>{p.contact || ""}</td>
                     <td>{p.tin || ""}</td>
                     <td>{p.address || ""}</td>
                     <td>{p.contact_person || ""}</td>
-                    <td>
+                    <td className="action-buttons">
                       <button onClick={() => openModal(p, i)}>View</button>
                     </td>
                   </tr>
@@ -335,18 +363,22 @@ export default function Payees() {
               )}
             </tbody>
           </table>
-        </section>
+        </div>
 
-        <aside className="table-side" aria-hidden={showAddModal ? "false" : "true"}>
-            <button className="add-payee" onClick={openAddModal}>Add Payee</button>
-          </aside>
+        <div className="pagination-controls">
+          <button onClick={prevPage} disabled={currentPage === 1}>
+            Previous
+          </button>
+          <span>Page {currentPage} of {totalPages}</span>
+          <button onClick={nextPage} disabled={currentPage === totalPages}>
+            Next
+          </button>
         </div>
 
         {selectedPayee && (
           <div className="modal-overlay">
             <div className="modal">
               <h2>Edit Payee Information</h2>
-
               <div className="form-row">
                 <label>Name:</label>
                 <input
@@ -355,7 +387,6 @@ export default function Payees() {
                   onChange={handleEditChange}
                 />
               </div>
-
               <div className="form-row">
                 <label>Contact Number:</label>
                 <input
@@ -364,7 +395,6 @@ export default function Payees() {
                   onChange={handleEditChange}
                 />
               </div>
-
               <div className="form-row">
                 <label>TIN Number:</label>
                 <input
@@ -373,7 +403,6 @@ export default function Payees() {
                   onChange={handleEditChange}
                 />
               </div>
-
               <div className="form-row">
                 <label>Address:</label>
                 <input
@@ -382,7 +411,6 @@ export default function Payees() {
                   onChange={handleEditChange}
                 />
               </div>
-
               <div className="form-row">
                 <label>Contact Person:</label>
                 <input
@@ -391,7 +419,6 @@ export default function Payees() {
                   onChange={handleEditChange}
                 />
               </div>
-
               <div className="form-row">
                 <label>Account Details:</label>
                 <input
@@ -400,17 +427,14 @@ export default function Payees() {
                   onChange={handleEditChange}
                 />
               </div>
-
               <div className="modal-actions">
                 <button onClick={handleSave}>Save</button>
-
                 <button
                   className="delete-btn"
                   onClick={() => handleDelete(selectedPayee.name)}
                 >
                   Delete Payee
                 </button>
-
                 <button onClick={closeModal}>Close</button>
               </div>
             </div>
@@ -421,32 +445,26 @@ export default function Payees() {
           <div className="modal-overlay">
             <div className="modal" role="dialog" aria-modal="true">
               <h2>Add Payee</h2>
-
               <div className="form-row">
                 <label>Name:</label>
                 <input name="name" value={addForm.name} onChange={handleAddChange} />
               </div>
-
               <div className="form-row">
                 <label>Contact Number:</label>
                 <input name="contactNumber" value={addForm.contactNumber} onChange={handleAddChange} />
               </div>
-
               <div className="form-row">
                 <label>TIN Number:</label>
                 <input name="tin" value={addForm.tin} onChange={handleAddChange} />
               </div>
-
               <div className="form-row">
                 <label>Address:</label>
                 <input name="address" value={addForm.address} onChange={handleAddChange} />
               </div>
-
               <div className="form-row">
                 <label>Contact Person:</label>
                 <input name="contactPerson" value={addForm.contactPerson} onChange={handleAddChange} />
               </div>
-
               <div className="modal-actions">
                 <button onClick={handleAddSave}>Save</button>
                 <button onClick={closeAddModal}>Cancel</button>
@@ -455,55 +473,47 @@ export default function Payees() {
           </div>
         )}
         {showAccountModal && (
-        <div className="modal-backdrop" onClick={() => setShowAccountModal(false)}>
-          <div className="account-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>My Account</h2>
-
-            <div className="field-row">
-              <label>Username:</label>
-              <div className="info-row">
-                <span>yourusername</span>
-                <button className="change-btn">Change Username</button>
+          <div className="modal-backdrop" onClick={() => setShowAccountModal(false)}>
+            <div className="account-modal" onClick={(e) => e.stopPropagation()}>
+              <h2>My Account</h2>
+              <div className="field-row">
+                <label>Username:</label>
+                <div className="info-row">
+                  <span>yourusername</span>
+                  <button className="change-btn">Change Username</button>
+                </div>
               </div>
+              <div className="field-row">
+                <label>Email:</label>
+                <span>your@email.com</span>
+              </div>
+              <div className="field-row">
+                <label>Contact Number:</label>
+                <span>09123456789</span>
+              </div>
+              <div className="field-row">
+                <label>Password:</label>
+                <div className="info-row">
+                  <span>*********</span>
+                  <button className="change-btn">Change Password</button>
+                </div>
+              </div>
+              <button className="close-modal" onClick={() => setShowAccountModal(false)}>Close</button>
             </div>
-
-            <div className="field-row">
-              <label>Email:</label>
-              <span>your@email.com</span>
-            </div>
-
-            <div className="field-row">
-              <label>Contact Number:</label>
-              <span>09123456789</span>
-            </div>
-
-            <div className="field-row">
-              <label>Password:</label>
-              <div className="info-row">
-              <span>*********</span>
-              <button className="change-btn">Change Password</button>
-            </div>
-            </div>
-
-            <button className="close-modal" onClick={() => setShowAccountModal(false)}>Close</button>
           </div>
-        </div>
-      )}
+        )}
         {showStatusModal && (
           <div className="modal-backdrop" onClick={() => setShowStatusModal(false)}>
             <div className="status-modal" onClick={(e) => e.stopPropagation()}>
               <h2>Account Status</h2>
-
               <div className="status-row">
                 <span>Total Requested Disbursements: </span>
                 <span>{totalRequested}</span>
               </div>
-
               <div className="status-row">
                 <span>Login History: </span>
                 <span>0</span>
               </div>
-
               <button className="close-modal" onClick={() => setShowStatusModal(false)}>Close</button>
             </div>
           </div>

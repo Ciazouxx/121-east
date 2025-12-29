@@ -11,20 +11,37 @@
   border: 1px solid #000000;
   padding: 5px 10px;
   cursor: pointer;
-  color:#000000;
+  color: #000000;
 }
 
 .report-table {
-  max-width: 1000px;
+  margin-top: 20px;
+  width: 100%;
+  max-width: 100%;
   max-height: 480px;
-  overflow: auto;
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  min-height: 550px;
 }
 
 .report-table table {
   width: 100%;
   border-collapse: collapse;
-  color:#000000;
+  color: #333;
   table-layout: fixed;
+}
+
+.report-table thead th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 2px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 .report-table thead th {
@@ -39,14 +56,23 @@
   height: 10px;
 }
 .report-table::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.12);
+  background: rgba(0, 0, 0, 0.12);
   border-radius: 6px;
 }
 
-.report-table th, .report-table td {
-  border: 1px solid #000000;
-  padding: 8px;
+.report-table th,
+.report-table td {
+  padding: 12px 15px;
   text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.report-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.report-table tbody tr:hover {
+  background-color: #f9f9f9;
 }
 
 .report-table .success {
@@ -85,9 +111,17 @@
   border: 1px solid #e6e6e6;
   border-radius: 6px;
   white-space: pre-wrap;
-  color: #222;
+  color: #000;
   font-size: 14px;
   line-height: 1.4;
+}
+
+/* Ensure all text inside the Disbursement modal is black */
+.modal,
+.modal p,
+.modal h2,
+.modal strong {
+  color: #000;
 }
 
 /* Optional: style scrollbar for better look (WebKit) */
@@ -96,6 +130,35 @@
   width: 8px;
 }
 .modal-description::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.15);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 4px;
+}
+
+/* Pagination controls (match Payees style) */
+.pagination-controls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.pagination-controls button {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  margin: 0 5px;
+  cursor: pointer;
+  border-radius: 5px;
+  color: black;
+}
+
+.pagination-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pagination-controls span {
+  margin: 0 10px;
+  font-size: 16px;
+  color: black;
 }

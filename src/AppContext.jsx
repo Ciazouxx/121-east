@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
+// Chart of Accounts now persisted in DB; local fallback removed.
 
 export const AppContext = createContext();
 
@@ -16,11 +17,13 @@ export function AppProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [defaultCashierId, setDefaultCashierId] = useState(null);
   const [defaultAdminId, setDefaultAdminId] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [stats, setStats] = useState({
     totalDisbursedToday: 0,
     pendingDisbursements: 0,
-    failedTransactions: 0
+    failedTransactions: 0,
   });
 
   const defaultCOA = {
@@ -28,68 +31,179 @@ export function AppProvider({ children }) {
       { number: 1001, name: "Cash on Hand", debit: 0, credit: 0 },
       { number: 1002, name: "Cash In Bank", debit: 0, credit: 0 },
       { number: 1003, name: "Online Payment Account", debit: 0, credit: 0 },
-      { number: 1004, name: "Checks on Hand", debit: 0, credit: 0 }
+      { number: 1004, name: "Checks on Hand", debit: 0, credit: 0 },
     ],
     Liabilities: [
-      { number: 2001, name: "Accounts Payable", debit: 0, credit: 0 }
+      { number: 2001, name: "Accounts Payable", debit: 0, credit: 0 },
     ],
-    Revenues: [
-      { number: 3001, name: "Services", debit: 0, credit: 0 }
-    ],
+    Revenues: [{ number: 3001, name: "Services", debit: 0, credit: 0 }],
     Expenses: [
       { number: 4001, name: "Materials", debit: 0, credit: 0 },
       { number: 4002, name: "Labor", debit: 0, credit: 0 },
       { number: 4003, name: "Rent", debit: 0, credit: 0 },
-      { number: 4004, name: "Miscellaneous", debit: 0, credit: 0 }
-    ]
+      { number: 4004, name: "Miscellaneous", debit: 0, credit: 0 },
+    ],
   };
 
   // Helper function to get vendor/payee name
   function getVendorName(vendor) {
-    if (!vendor) return '';
+    if (!vendor) return "";
     if (vendor.name) return vendor.name;
-    return '';
+    return "";
   }
 
   // Load initial data from Supabase
   useEffect(() => {
     loadAllData();
+    // Check for logged-in user from session storage on app load
+    const userJson = sessionStorage.getItem("currentUser");
+    if (userJson) {
+      const user = JSON.parse(userJson);
+      if (user && user.id) {
+        setCurrentUser(user);
+      }
+    }
   }, []);
+
+  // Helper to map account type to DB section
+  function mapSection(type) {
+    if (!type) return "Expenses";
+    const t = type.toLowerCase();
+    if (t.includes("expense")) return "Expenses";
+    if (t.includes("revenue")) return "Revenues";
+    if (t.includes("liability")) return "Liabilities";
+    if (t.includes("asset")) return "Assets";
+    return type;
+  }
+
+  // Function to delete an account (persist to Supabase)
+  const deleteAccount = async (accountNo) => {
+    if (!window.confirm("Are you sure you want to delete this account?"))
+      return;
+    try {
+      const { error } = await supabase
+        .from("charts_of_account")
+        .delete()
+        .eq("account_number", Number(accountNo));
+      if (error) throw error;
+      setAccounts((currentAccounts) =>
+        currentAccounts.filter((acc) => acc.accountNo !== accountNo)
+      );
+    } catch (err) {
+      console.error("Error deleting account:", err);
+      alert("Failed to delete account: " + (err.message || err));
+    }
+  };
+
+  // Function to update an account (persist to Supabase)
+  const updateAccount = async (accountNo, updatedInfo) => {
+    try {
+      const payload = {
+        account_name: updatedInfo.accountName,
+        section: mapSection(updatedInfo.accountType),
+        description: updatedInfo.accountName,
+      };
+      const { error } = await supabase
+        .from("charts_of_account")
+        .update(payload)
+        .eq("account_number", Number(accountNo));
+      if (error) throw error;
+
+      setAccounts((currentAccounts) =>
+        currentAccounts.map((acc) =>
+          acc.accountNo === accountNo ? { ...acc, ...updatedInfo } : acc
+        )
+      );
+      return true;
+    } catch (err) {
+      console.error("Error updating account:", err);
+      alert("Failed to update account: " + (err.message || err));
+      return false;
+    }
+  };
+
+  // Function to add a new account (persist to Supabase)
+  const addAccount = async (newAccount) => {
+    const exists = accounts.some(
+      (acc) => acc.accountNo === newAccount.accountNo
+    );
+    if (exists) {
+      alert(
+        `An account with the number ${newAccount.accountNo} already exists.`
+      );
+      return false; // Indicate failure
+    }
+
+    try {
+      const payload = {
+        account_number: Number(newAccount.accountNo),
+        account_name: newAccount.accountName,
+        section: mapSection(newAccount.accountType),
+        description: newAccount.accountName,
+      };
+      const { data, error } = await supabase
+        .from("charts_of_account")
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+
+      const inserted = {
+        accountNo: String(data.account_number),
+        accountName: data.account_name,
+        accountType: data.section,
+      };
+
+      setAccounts((currentAccounts) =>
+        [...currentAccounts, inserted].sort((a, b) =>
+          a.accountNo.localeCompare(b.accountNo)
+        )
+      );
+      return true; // Indicate success
+    } catch (err) {
+      console.error("Error adding account:", err);
+      alert("Failed to add account: " + (err.message || err));
+      return false;
+    }
+  };
 
   async function loadAllData() {
     setLoading(true);
+    let mappedRequests = [];
     try {
       // Default IDs (not using admin/cashier tables in simple schema)
-      setDefaultAdminId('default-admin');
-      setDefaultCashierId('default-cashier');
+      setDefaultAdminId("default-admin");
+      setDefaultCashierId("default-cashier");
 
       // Load payees (prioritize payees table - current structure)
       const { data: payeesData, error: payeesError } = await supabase
-        .from('payees')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("payees")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (payeesError) {
-        console.error('Error loading payees:', payeesError);
+        console.error("Error loading payees:", payeesError);
         setPayees([]);
       } else {
-        const mappedPayees = (payeesData || []).map(p => ({
+        const mappedPayees = (payeesData || []).map((p) => ({
           ...p,
           id: p.id,
-          name: p.name || '',
-          contact: p.contact || '',
-          tin: p.tin || '',
-          address: p.address || '',
-          contactPerson: p.contact_person || '',
-          account: p.account || ''
+          name: p.name || "",
+          contact: p.contact || "",
+          tin: p.tin || "",
+          address: p.address || "",
+          contactPerson: p.contact_person || "",
+          account: p.account || "",
         }));
         setPayees(mappedPayees);
       }
 
       // Load disbursements with relational join to payees
-      const { data: disbursementsData, error: disbursementsError } = await supabase
-        .from('disbursements')
-        .select(`
+      const { data: disbursementsData, error: disbursementsError } =
+        await supabase
+          .from("disbursements")
+          .select(
+            `
           *,
           payee:payee_id (
             id,
@@ -100,106 +214,142 @@ export function AppProvider({ children }) {
             contact_person,
             account
           )
-        `)
-        .order('created_at', { ascending: false });
+        `
+          )
+          .order("created_at", { ascending: false });
 
       if (disbursementsError) {
-        console.error('Error loading disbursements:', disbursementsError);
+        console.error("Error loading disbursements:", disbursementsError);
         // Try without join if foreign key doesn't exist yet
-        const { data: disbursementsDataSimple, error: disbursementsErrorSimple } = await supabase
-          .from('disbursements')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
+        const {
+          data: disbursementsDataSimple,
+          error: disbursementsErrorSimple,
+        } = await supabase
+          .from("disbursements")
+          .select("*")
+          .order("created_at", { ascending: false });
+
         if (disbursementsErrorSimple) {
-          console.error('Error loading disbursements (simple):', disbursementsErrorSimple);
+          console.error(
+            "Error loading disbursements (simple):",
+            disbursementsErrorSimple
+          );
           setPendingApprovals([]);
         } else {
-          const mappedRequests = (disbursementsDataSimple || []).map(d => ({
+          mappedRequests = (disbursementsDataSimple || []).map((d) => ({
             ...d,
             id: d.id,
-            name: d.name || '',
+            name: d.name || "",
             amount: d.amount,
             method: d.method,
             accountNumber: d.account_number,
             manualAccountNumber: d.manual_account_number,
-            contact: d.contact || '',
+            contact: d.contact || "",
             date: d.date,
             reason: d.reason,
             reference: d.reference,
-            status: d.status || 'Pending'
+            status: d.status || "Pending",
           }));
           setPendingApprovals(mappedRequests);
         }
       } else {
         // Use relational data
-        const mappedRequests = (disbursementsData || []).map(d => ({
+        mappedRequests = (disbursementsData || []).map((d) => ({
           ...d,
           id: d.id,
-          name: d.payee ? d.payee.name : (d.name || ''),
+          name: d.payee ? d.payee.name : d.name || "",
           amount: d.amount,
           method: d.method,
           accountNumber: d.account_number,
           manualAccountNumber: d.manual_account_number,
-          contact: d.payee ? d.payee.contact : (d.contact || ''),
+          contact: d.payee ? d.payee.contact : d.contact || "",
           date: d.date,
           reason: d.reason,
           reference: d.reference,
-          status: d.status || 'Pending'
+          status: d.status || "Pending",
         }));
         setPendingApprovals(mappedRequests);
       }
 
       // Load recent activity
       const { data: activityData, error: activityError } = await supabase
-        .from('recent_activity')
-        .select('*')
-        .order('date', { ascending: false })
+        .from("recent_activity")
+        .select("*")
+        .order("date", { ascending: false })
         .limit(50);
 
       if (activityError) throw activityError;
       setRecentActivity(activityData || []);
 
+      // Load charts of accounts from DB (create defaults if not present)
+      const { data: chartsData, error: chartsError } = await supabase
+        .from("charts_of_account")
+        .select("*")
+        .order("account_number", { ascending: true });
+
+      if (chartsError && chartsError.code !== "42P01") {
+        console.error("Error loading charts_of_account:", chartsError);
+        setAccounts([]);
+      } else if (chartsData && chartsData.length > 0) {
+        setAccounts(
+          chartsData.map((c) => ({
+            accountNo: String(c.account_number),
+            accountName: c.account_name,
+            accountType: c.section,
+          }))
+        );
+      } else {
+        // No Chart of Accounts found in DB. Please run the migration (supabase-schema.sql) to seed default accounts.
+        console.warn(
+          "No charts_of_account found. Run the migration in supabase-schema.sql to seed default Chart of Accounts."
+        );
+        setAccounts([]);
+      }
+
       // Load stats for today
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split("T")[0];
       const { data: statsData, error: statsError } = await supabase
-        .from('stats')
-        .select('*')
-        .eq('date', today)
+        .from("stats")
+        .select("*")
+        .eq("date", today)
         .single();
 
-      if (statsError && statsError.code !== 'PGRST116') throw statsError;
-      
+      if (statsError && statsError.code !== "PGRST116") throw statsError;
+
       if (statsData) {
         setStats({
           totalDisbursedToday: Number(statsData.total_disbursed_today) || 0,
           pendingDisbursements: Number(statsData.pending_disbursements) || 0,
-          failedTransactions: Number(statsData.failed_transactions) || 0
+          failedTransactions: Number(statsData.failed_transactions) || 0,
         });
         setRefCounter(statsData.ref_counter || 1);
         setTotalRequested(statsData.total_requested || 0);
       } else {
         // Initialize today's stats
-        await supabase.from('stats').insert({
+        await supabase.from("stats").insert({
           date: today,
           total_disbursed_today: 0,
           pending_disbursements: 0,
           failed_transactions: 0,
           total_requested: 0,
-          ref_counter: 1
+          ref_counter: 1,
         });
       }
 
       // Calculate pending disbursements from data
-      const pendingCount = mappedRequests.filter(d => d.status === 'Pending').length;
-      const failedCount = mappedRequests.filter(d => d.status === 'Failed').length;
-      setStats(prev => ({
+      const pendingCount = mappedRequests.filter(
+        (d) => d.status === "Pending"
+      ).length;
+      const failedCount = mappedRequests.filter(
+        (d) => d.status === "Failed"
+      ).length;
+      setStats((prev) => ({
         ...prev,
         pendingDisbursements: pendingCount,
-        failedTransactions: failedCount
+        failedTransactions: failedCount,
       }));
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error("Error loading data:", error);
     } finally {
       setLoading(false);
     }
@@ -207,54 +357,72 @@ export function AppProvider({ children }) {
 
   async function addDisbursement(entry) {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const currentTime = new Date().toTimeString().split(' ')[0];
-      
+      const today = new Date().toISOString().split("T")[0];
+      const currentTime = new Date().toTimeString().split(" ")[0];
+
       // Get or create today's stats
       let { data: statsData } = await supabase
-        .from('stats')
-        .select('ref_counter, total_requested')
-        .eq('date', today)
+        .from("stats")
+        .select("ref_counter, total_requested")
+        .eq("date", today)
         .single();
 
       if (!statsData) {
         const { data: newStats } = await supabase
-          .from('stats')
+          .from("stats")
           .insert({
             date: today,
             ref_counter: refCounter,
-            total_requested: 0
+            total_requested: 0,
           })
           .select()
           .single();
         statsData = newStats;
       }
 
-      const newRefCounter = (statsData.ref_counter || refCounter) + 1;
-      const reference = String(newRefCounter).padStart(5, "0");
+      // Get atomic reference from Postgres RPC (get_next_reference)
+      let reference = null;
+      let refCounterFromDb = null;
+      try {
+        const { data: refData, error: refErr } = await supabase.rpc(
+          "get_next_reference",
+          { _date: today }
+        );
+        if (refErr) throw refErr;
+        const rd = Array.isArray(refData) ? refData[0] : refData;
+        reference = rd?.reference || null;
+        refCounterFromDb = rd?.ref_counter || null;
+      } catch (err) {
+        // Fallback if RPC not available: compute locally (may have race conditions)
+        const newRefCounter = (statsData.ref_counter || refCounter) + 1;
+        const counterPart = String(newRefCounter).padStart(5, "0");
+        const datePart = today.replace(/-/g, "");
+        reference = `DISB-${datePart}-${counterPart}`;
+        refCounterFromDb = newRefCounter;
+      }
 
       // Find or create payee (using payees table - old structure)
       let payeeData = null;
       const { data: existingPayee } = await supabase
-        .from('payees')
-        .select('*')
-        .eq('name', entry.name.trim())
+        .from("payees")
+        .select("*")
+        .eq("name", entry.name.trim())
         .maybeSingle();
 
       if (!existingPayee) {
         // Create new payee
         const { data: newPayee, error: payeeError } = await supabase
-          .from('payees')
+          .from("payees")
           .insert({
             name: entry.name.trim(),
             contact: entry.contact || null,
-            account: entry.account || null
+            account: entry.account || null,
           })
           .select()
           .single();
-        
+
         if (payeeError) {
-          throw new Error('Failed to create payee: ' + payeeError.message);
+          throw new Error("Failed to create payee: " + payeeError.message);
         }
         payeeData = newPayee;
       } else {
@@ -262,15 +430,15 @@ export function AppProvider({ children }) {
         // Update contact if provided
         if (entry.contact && entry.contact !== existingPayee.contact) {
           await supabase
-            .from('payees')
+            .from("payees")
             .update({ contact: entry.contact })
-            .eq('id', existingPayee.id);
+            .eq("id", existingPayee.id);
         }
       }
 
       // Insert into disbursements table with payee_id foreign key
       const { data: newDisbursement, error: disbursementError } = await supabase
-        .from('disbursements')
+        .from("disbursements")
         .insert({
           name: entry.name,
           payee_id: payeeData.id, // Foreign key to payees
@@ -282,25 +450,26 @@ export function AppProvider({ children }) {
           date: entry.date || today,
           reason: entry.reason || null,
           reference: reference,
-          status: 'Pending'
+          status: "Pending",
         })
         .select()
         .single();
 
       if (disbursementError) throw disbursementError;
 
-      // Update stats
+      // Update stats (do NOT overwrite ref_counter here - RPC already incremented it)
       await supabase
-        .from('stats')
+        .from("stats")
         .update({
-          ref_counter: newRefCounter,
-          total_requested: (statsData.total_requested || 0) + 1,
-          pending_disbursements: pendingApprovals.filter(d => d.status === 'Pending').length + 1
+          total_requested: (statsData?.total_requested || 0) + 1,
+          pending_disbursements:
+            pendingApprovals.filter((d) => d.status === "Pending").length + 1,
         })
-        .eq('date', today);
+        .eq("date", today);
 
-      setRefCounter(newRefCounter);
-      setTotalRequested(prev => prev + 1);
+      // Sync local refCounter with DB if RPC returned it
+      if (refCounterFromDb) setRefCounter(refCounterFromDb);
+      setTotalRequested((prev) => prev + 1);
 
       // Map to pendingApprovals format (old disbursements structure)
       const mappedRequest = {
@@ -311,31 +480,31 @@ export function AppProvider({ children }) {
         method: newDisbursement.method,
         accountNumber: newDisbursement.account_number,
         manualAccountNumber: newDisbursement.manual_account_number,
-        contact: newDisbursement.contact || '',
+        contact: newDisbursement.contact || "",
         date: newDisbursement.date,
         reason: newDisbursement.reason,
         reference: newDisbursement.reference,
-        status: newDisbursement.status
+        status: newDisbursement.status,
       };
 
-      setPendingApprovals(prev => [...prev, mappedRequest]);
-      setStats(prev => ({
+      setPendingApprovals((prev) => [...prev, mappedRequest]);
+      setStats((prev) => ({
         ...prev,
-        pendingDisbursements: prev.pendingDisbursements + 1
+        pendingDisbursements: prev.pendingDisbursements + 1,
       }));
 
       // Reload payees to include new payee
       await loadAllData();
 
       if (entry.file) {
-        setAttachedFiles(prev => ({
+        setAttachedFiles((prev) => ({
           ...prev,
-          [entry.name]: entry.file
+          [entry.name]: entry.file,
         }));
       }
     } catch (error) {
-      console.error('Error adding disbursement:', error);
-      alert('Failed to add disbursement: ' + error.message);
+      console.error("Error adding disbursement:", error);
+      alert("Failed to add disbursement: " + error.message);
     }
   }
 
@@ -346,16 +515,16 @@ export function AppProvider({ children }) {
 
       const disbursementId = item.id;
       if (!disbursementId) {
-        throw new Error('Disbursement ID is missing');
+        throw new Error("Disbursement ID is missing");
       }
 
       const amountNum = Number(item.amount);
 
       // Get charts of accounts
       const { data: coaData, error: coaError } = await supabase
-        .from('charts_of_account')
-        .select('*')
-        .order('account_number');
+        .from("charts_of_account")
+        .select("*")
+        .order("account_number");
 
       if (coaError) throw coaError;
 
@@ -367,68 +536,67 @@ export function AppProvider({ children }) {
         for (const account of coaData || []) {
           if (account.account_number === creditNum) {
             await supabase
-              .from('charts_of_account')
+              .from("charts_of_account")
               .update({
-                balance: (Number(account.balance) || 0) + amountNum
+                balance: (Number(account.balance) || 0) + amountNum,
               })
-              .eq('account_id', account.account_id);
+              .eq("account_id", account.account_id);
           }
           if (account.account_number === debitNum) {
             await supabase
-              .from('charts_of_account')
+              .from("charts_of_account")
               .update({
-                balance: (Number(account.balance) || 0) - amountNum
+                balance: (Number(account.balance) || 0) - amountNum,
               })
-              .eq('account_id', account.account_id);
+              .eq("account_id", account.account_id);
           }
         }
       }
 
       // Update disbursement status to Approved
       const { error: updateError } = await supabase
-        .from('disbursements')
-        .update({ status: 'Approved' })
-        .eq('id', disbursementId);
+        .from("disbursements")
+        .update({ status: "Approved" })
+        .eq("id", disbursementId);
 
       if (updateError) throw updateError;
 
       // Update local state
       const updated = pendingApprovals.map((p, i) =>
-        i === index ? { ...p, status: 'Approved' } : p
+        i === index ? { ...p, status: "Approved" } : p
       );
       setPendingApprovals(updated);
 
       // Update stats
-      const today = new Date().toISOString().split('T')[0];
-      const pendingCount = updated.filter(p => p.status === 'Pending').length;
-      
+      const today = new Date().toISOString().split("T")[0];
+      const pendingCount = updated.filter((p) => p.status === "Pending").length;
+
       await supabase
-        .from('stats')
+        .from("stats")
         .update({
           pending_disbursements: pendingCount,
-          total_disbursed_today: (Number(stats.totalDisbursedToday) || 0) + amountNum
+          total_disbursed_today:
+            (Number(stats.totalDisbursedToday) || 0) + amountNum,
         })
-        .eq('date', today);
+        .eq("date", today);
 
-      setStats(prev => ({
+      setStats((prev) => ({
         ...prev,
         pendingDisbursements: pendingCount,
-        totalDisbursedToday: (prev.totalDisbursedToday || 0) + amountNum
+        totalDisbursedToday: (prev.totalDisbursedToday || 0) + amountNum,
       }));
 
       // Add recent activity
       const message = `₱${item.amount} successfully disbursed to ${item.name}`;
-      await supabase
-        .from('recent_activity')
-        .insert({
-          message: message,
-          date: new Date().toISOString()
-        });
+      await supabase.from("recent_activity").insert({
+        message: message,
+        date: new Date().toISOString(),
+      });
 
       await loadAllData();
     } catch (error) {
-      console.error('Error approving disbursement:', error);
-      alert('Failed to approve disbursement: ' + error.message);
+      console.error("Error approving disbursement:", error);
+      alert("Failed to approve disbursement: " + error.message);
     }
   }
 
@@ -439,34 +607,34 @@ export function AppProvider({ children }) {
 
       const disbursementId = item.id;
       if (!disbursementId) {
-        throw new Error('Disbursement ID is missing');
+        throw new Error("Disbursement ID is missing");
       }
 
       const { error } = await supabase
-        .from('disbursements')
+        .from("disbursements")
         .delete()
-        .eq('id', disbursementId);
+        .eq("id", disbursementId);
 
       if (error) throw error;
 
       const updated = pendingApprovals.filter((_, i) => i !== index);
       setPendingApprovals(updated);
 
-      const today = new Date().toISOString().split('T')[0];
-      const pendingCount = updated.filter(p => p.status === 'Pending').length;
-      
-      await supabase
-        .from('stats')
-        .update({ pending_disbursements: pendingCount })
-        .eq('date', today);
+      const today = new Date().toISOString().split("T")[0];
+      const pendingCount = updated.filter((p) => p.status === "Pending").length;
 
-      setStats(prev => ({
+      await supabase
+        .from("stats")
+        .update({ pending_disbursements: pendingCount })
+        .eq("date", today);
+
+      setStats((prev) => ({
         ...prev,
-        pendingDisbursements: pendingCount
+        pendingDisbursements: pendingCount,
       }));
     } catch (error) {
-      console.error('Error canceling disbursement:', error);
-      alert('Failed to cancel disbursement: ' + error.message);
+      console.error("Error canceling disbursement:", error);
+      alert("Failed to cancel disbursement: " + error.message);
     }
   }
 
@@ -476,14 +644,14 @@ export function AppProvider({ children }) {
       // But we'll maintain backward compatibility by storing vendor-specific COA data
       // This would require a vendor_coa junction table, but for now we'll use charts_of_account
       // and update balances based on vendor transactions
-      
+
       // For now, just update the current COA state
       if (currentPayee?.name === payeeName) {
         setCurrentCOA(newCOA);
       }
     } catch (error) {
-      console.error('Error updating COA:', error);
-      alert('Failed to update chart of accounts: ' + error.message);
+      console.error("Error updating COA:", error);
+      alert("Failed to update chart of accounts: " + error.message);
     }
   }
 
@@ -491,9 +659,9 @@ export function AppProvider({ children }) {
     try {
       // Get global charts of accounts
       const { data, error } = await supabase
-        .from('charts_of_account')
-        .select('*')
-        .order('account_number');
+        .from("charts_of_account")
+        .select("*")
+        .order("account_number");
 
       if (error) throw error;
 
@@ -503,23 +671,23 @@ export function AppProvider({ children }) {
         Assets: [],
         Liabilities: [],
         Revenues: [],
-        Expenses: []
+        Expenses: [],
       };
 
-      data.forEach(acc => {
+      data.forEach((acc) => {
         if (!formattedCOA[acc.section]) formattedCOA[acc.section] = [];
         formattedCOA[acc.section].push({
           number: acc.account_number,
           name: acc.account_name,
           debit: 0, // In normalized schema, we track balance, not debit/credit per vendor
           credit: 0,
-          balance: Number(acc.balance) || 0
+          balance: Number(acc.balance) || 0,
         });
       });
 
       return formattedCOA;
     } catch (error) {
-      console.error('Error getting COA:', error);
+      console.error("Error getting COA:", error);
       return null;
     }
   }
@@ -527,53 +695,51 @@ export function AppProvider({ children }) {
   async function markDisbursementFailed(index) {
     try {
       const item = pendingApprovals[index];
-      if (!item || item.status === 'Failed') return;
+      if (!item || item.status === "Failed") return;
 
       const disbursementId = item.id;
       if (!disbursementId) {
-        throw new Error('Disbursement ID is missing');
+        throw new Error("Disbursement ID is missing");
       }
 
       const { error } = await supabase
-        .from('disbursements')
-        .update({ status: 'Failed' })
-        .eq('id', disbursementId);
+        .from("disbursements")
+        .update({ status: "Failed" })
+        .eq("id", disbursementId);
 
       if (error) throw error;
 
       const updated = pendingApprovals.map((p, i) =>
-        i === index ? { ...p, status: 'Failed' } : p
+        i === index ? { ...p, status: "Failed" } : p
       );
       setPendingApprovals(updated);
 
       const message = `₱${item.amount} disbursement marked as failed for ${item.name}`;
-      await supabase
-        .from('recent_activity')
-        .insert({
-          message: message,
-          date: new Date().toISOString()
-        });
+      await supabase.from("recent_activity").insert({
+        message: message,
+        date: new Date().toISOString(),
+      });
 
-      const today = new Date().toISOString().split('T')[0];
-      const pendingCount = updated.filter(p => p.status === 'Pending').length;
-      const failedCount = updated.filter(p => p.status === 'Failed').length;
+      const today = new Date().toISOString().split("T")[0];
+      const pendingCount = updated.filter((p) => p.status === "Pending").length;
+      const failedCount = updated.filter((p) => p.status === "Failed").length;
 
       await supabase
-        .from('stats')
+        .from("stats")
         .update({
           pending_disbursements: pendingCount,
-          failed_transactions: failedCount
+          failed_transactions: failedCount,
         })
-        .eq('date', today);
+        .eq("date", today);
 
-      setStats(prev => ({
+      setStats((prev) => ({
         ...prev,
         pendingDisbursements: pendingCount,
-        failedTransactions: failedCount
+        failedTransactions: failedCount,
       }));
     } catch (error) {
-      console.error('Error marking disbursement failed:', error);
-      alert('Failed to mark disbursement as failed: ' + error.message);
+      console.error("Error marking disbursement failed:", error);
+      alert("Failed to mark disbursement as failed: " + error.message);
     }
   }
 
@@ -584,34 +750,34 @@ export function AppProvider({ children }) {
 
       const disbursementId = item.id;
       if (!disbursementId) {
-        throw new Error('Disbursement ID is missing');
+        throw new Error("Disbursement ID is missing");
       }
 
       const { error } = await supabase
-        .from('disbursements')
+        .from("disbursements")
         .delete()
-        .eq('id', disbursementId);
+        .eq("id", disbursementId);
 
       if (error) throw error;
 
       const updated = pendingApprovals.filter((_, i) => i !== index);
       setPendingApprovals(updated);
 
-      const today = new Date().toISOString().split('T')[0];
-      const pendingCount = updated.filter(p => p.status === 'Pending').length;
+      const today = new Date().toISOString().split("T")[0];
+      const pendingCount = updated.filter((p) => p.status === "Pending").length;
 
       await supabase
-        .from('stats')
+        .from("stats")
         .update({ pending_disbursements: pendingCount })
-        .eq('date', today);
+        .eq("date", today);
 
-      setStats(prev => ({
+      setStats((prev) => ({
         ...prev,
-        pendingDisbursements: pendingCount
+        pendingDisbursements: pendingCount,
       }));
     } catch (error) {
-      console.error('Error deleting disbursement:', error);
-      alert('Failed to delete disbursement: ' + error.message);
+      console.error("Error deleting disbursement:", error);
+      alert("Failed to delete disbursement: " + error.message);
     }
   }
 
@@ -624,16 +790,16 @@ export function AppProvider({ children }) {
 
       // Update payees table
       const { data: updatedPayee, error } = await supabase
-        .from('payees')
+        .from("payees")
         .update({
           name: newDetails.name,
           contact: newDetails.contact,
           account: newDetails.account,
           tin: newDetails.tin,
           address: newDetails.address,
-          contact_person: newDetails.contactPerson
+          contact_person: newDetails.contactPerson,
         })
-        .eq('id', payeeId)
+        .eq("id", payeeId)
         .select()
         .single();
 
@@ -643,18 +809,123 @@ export function AppProvider({ children }) {
       const mappedPayee = {
         ...updatedPayee,
         id: updatedPayee.id,
-        name: updatedPayee.name || '',
-        contact: updatedPayee.contact || '',
-        tin: updatedPayee.tin || '',
-        address: updatedPayee.address || '',
-        contactPerson: updatedPayee.contact_person || '',
-        account: updatedPayee.account || ''
+        name: updatedPayee.name || "",
+        contact: updatedPayee.contact || "",
+        tin: updatedPayee.tin || "",
+        address: updatedPayee.address || "",
+        contactPerson: updatedPayee.contact_person || "",
+        account: updatedPayee.account || "",
       };
 
-      setPayees(prev => prev.map((p, i) => i === index ? mappedPayee : p));
+      setPayees((prev) => prev.map((p, i) => (i === index ? mappedPayee : p)));
     } catch (error) {
-      console.error('Error updating payee:', error);
-      alert('Failed to update payee: ' + error.message);
+      console.error("Error updating payee:", error);
+      alert("Failed to update payee: " + error.message);
+    }
+  }
+
+  async function registerUser({ firstName, lastName, email, password }) {
+    try {
+      const { data, error } = await supabase
+        .from("admin")
+        .insert({
+          admin_fname: firstName,
+          admin_lname: lastName,
+          email: email,
+          // IMPORTANT: Storing plain text passwords is not secure.
+          // This is for demonstration. Use Supabase Auth for a real application.
+          password: password,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === "23505") {
+          // Unique constraint violation
+          alert("An account with this email already exists.");
+        } else {
+          throw error;
+        }
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error registering user:", error);
+      alert("Failed to register user: " + error.message);
+      return false;
+    }
+  }
+
+  async function loginUser({ email, password }) {
+    try {
+      const { data: user, error } = await supabase
+        .from("admin")
+        .select("admin_id, email, password") // Select role as well
+        .eq("email", email)
+        .single();
+
+      // Handle cases where the user is not found (PGRST116) or other errors
+      if (error && error.code !== "PGRST116") {
+        throw error;
+      }
+
+      if (user && user.password === password) {
+        const userData = {
+          id: user.admin_id,
+          email: user.email,
+        };
+        setCurrentUser(userData);
+        // Persist user in session storage to survive page reloads
+        sessionStorage.setItem("currentUser", JSON.stringify(userData));
+        return true;
+      }
+
+      // If user is not found or password does not match
+      // Clear any previous user session
+      setCurrentUser(null);
+      sessionStorage.removeItem("currentUser");
+      return false;
+    } catch (error) {
+      console.error("Error logging in user:", error);
+      alert("An error occurred during login: " + error.message);
+      return false;
+    }
+  }
+
+  async function updateUserAccount(updates) {
+    if (!currentUser) {
+      alert("You must be logged in to update your account.");
+      return false;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("admin")
+        .update(updates)
+        .eq("admin_id", currentUser.id)
+        .select("admin_id, email")
+        .single();
+
+      if (error) {
+        if (error.code === "23505") {
+          // Unique constraint violation for email
+          alert("This email is already taken by another account.");
+          return false;
+        }
+        throw error;
+      }
+
+      // Update user state and session storage
+      const updatedUserData = {
+        id: data.admin_id,
+        email: data.email,
+      };
+      setCurrentUser(updatedUserData);
+      sessionStorage.setItem("currentUser", JSON.stringify(updatedUserData));
+      return true;
+    } catch (error) {
+      console.error("Error updating account:", error);
+      alert("Failed to update account: " + error.message);
+      return false;
     }
   }
 
@@ -688,7 +959,16 @@ export function AppProvider({ children }) {
     setTotalRequested,
     totalRequested,
     loading,
-    loadAllData
+    loadAllData,
+    registerUser,
+    loginUser,
+    currentUser,
+    setCurrentUser,
+    accounts,
+    deleteAccount,
+    updateAccount,
+    addAccount,
+    updateUserAccount,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
