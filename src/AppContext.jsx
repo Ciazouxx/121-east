@@ -20,6 +20,30 @@ export function AppProvider({ children }) {
   const [accounts, setAccounts] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // User account state with localStorage persistence
+  const [userAccount, setUserAccount] = useState(() => {
+    const saved = localStorage.getItem("userAccount");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Error parsing saved userAccount:", e);
+      }
+    }
+    return {
+      username: "yourusername",
+      email: "your@email.com",
+      contactNumber: "09123456789",
+      password: "",
+      role: "user",
+    };
+  });
+
+  // Save userAccount to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("userAccount", JSON.stringify(userAccount));
+  }, [userAccount]);
+
   const [stats, setStats] = useState({
     totalDisbursedToday: 0,
     pendingDisbursements: 0,
@@ -61,6 +85,13 @@ export function AppProvider({ children }) {
       const user = JSON.parse(userJson);
       if (user && user.id) {
         setCurrentUser(user);
+        // Also restore userAccount with role
+        setUserAccount((prev) => ({
+          ...prev,
+          username: user.firstName + " " + user.lastName,
+          email: user.email,
+          role: user.role || "user",
+        }));
       }
     }
   }, []);
@@ -249,6 +280,7 @@ export function AppProvider({ children }) {
             reason: d.reason,
             reference: d.reference,
             status: d.status || "Pending",
+            created_by: d.created_by || "Unknown User",
           }));
           setPendingApprovals(mappedRequests);
         }
@@ -267,6 +299,7 @@ export function AppProvider({ children }) {
           reason: d.reason,
           reference: d.reference,
           status: d.status || "Pending",
+          created_by: d.created_by || "Unknown User",
         }));
         setPendingApprovals(mappedRequests);
       }
@@ -388,11 +421,20 @@ export function AppProvider({ children }) {
           "get_next_reference",
           { _date: today }
         );
-        if (refErr) throw refErr;
+        if (refErr) {
+          console.error("RPC error:", refErr);
+          throw refErr;
+        }
         const rd = Array.isArray(refData) ? refData[0] : refData;
         reference = rd?.reference || null;
         refCounterFromDb = rd?.ref_counter || null;
+
+        if (!reference) {
+          console.warn("RPC returned no reference, using fallback");
+          throw new Error("No reference from RPC");
+        }
       } catch (err) {
+        console.log("Using fallback reference generation:", err.message);
         // Fallback if RPC not available: compute locally (may have race conditions)
         const newRefCounter = (statsData.ref_counter || refCounter) + 1;
         const counterPart = String(newRefCounter).padStart(5, "0");
@@ -451,11 +493,31 @@ export function AppProvider({ children }) {
           reason: entry.reason || null,
           reference: reference,
           status: "Pending",
+          created_by: entry.created_by || "Unknown User",
         })
-        .select()
+        .select("*")
         .single();
 
-      if (disbursementError) throw disbursementError;
+      if (disbursementError) {
+        console.error("Disbursement insert error:", disbursementError);
+        throw disbursementError;
+      }
+
+      console.log("New disbursement created:", newDisbursement);
+
+      // Verify reference was saved
+      if (!newDisbursement.reference) {
+        console.error("Warning: Reference not returned from database!");
+        // Try to read it back
+        const { data: checkData } = await supabase
+          .from("disbursements")
+          .select("reference")
+          .eq("id", newDisbursement.id)
+          .single();
+        if (checkData?.reference) {
+          newDisbursement.reference = checkData.reference;
+        }
+      }
 
       // Update stats (do NOT overwrite ref_counter here - RPC already incremented it)
       await supabase
@@ -485,6 +547,7 @@ export function AppProvider({ children }) {
         reason: newDisbursement.reason,
         reference: newDisbursement.reference,
         status: newDisbursement.status,
+        created_by: newDisbursement.created_by || "Unknown User",
       };
 
       setPendingApprovals((prev) => [...prev, mappedRequest]);
@@ -827,14 +890,13 @@ export function AppProvider({ children }) {
   async function registerUser({ firstName, lastName, email, password }) {
     try {
       const { data, error } = await supabase
-        .from("admin")
+        .from("users")
         .insert({
-          admin_fname: firstName,
-          admin_lname: lastName,
+          first_name: firstName,
+          last_name: lastName,
           email: email,
-          // IMPORTANT: Storing plain text passwords is not secure.
-          // This is for demonstration. Use Supabase Auth for a real application.
           password: password,
+          role: "user", // Default role for all registered users
         })
         .select()
         .single();
@@ -859,8 +921,8 @@ export function AppProvider({ children }) {
   async function loginUser({ email, password }) {
     try {
       const { data: user, error } = await supabase
-        .from("admin")
-        .select("admin_id, email, password") // Select role as well
+        .from("users")
+        .select("user_id, first_name, last_name, email, password, role")
         .eq("email", email)
         .single();
 
@@ -871,12 +933,24 @@ export function AppProvider({ children }) {
 
       if (user && user.password === password) {
         const userData = {
-          id: user.admin_id,
+          id: user.user_id,
           email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
         };
         setCurrentUser(userData);
         // Persist user in session storage to survive page reloads
         sessionStorage.setItem("currentUser", JSON.stringify(userData));
+
+        // Update userAccount state with logged-in user's role
+        setUserAccount((prev) => ({
+          ...prev,
+          username: user.first_name + " " + user.last_name,
+          email: user.email,
+          role: user.role,
+        }));
+
         return true;
       }
 
@@ -899,10 +973,10 @@ export function AppProvider({ children }) {
     }
     try {
       const { data, error } = await supabase
-        .from("admin")
+        .from("users")
         .update(updates)
-        .eq("admin_id", currentUser.id)
-        .select("admin_id, email")
+        .eq("user_id", currentUser.id)
+        .select("user_id, email, role")
         .single();
 
       if (error) {
@@ -916,8 +990,9 @@ export function AppProvider({ children }) {
 
       // Update user state and session storage
       const updatedUserData = {
-        id: data.admin_id,
+        id: data.user_id,
         email: data.email,
+        role: data.role,
       };
       setCurrentUser(updatedUserData);
       sessionStorage.setItem("currentUser", JSON.stringify(updatedUserData));
@@ -969,6 +1044,8 @@ export function AppProvider({ children }) {
     updateAccount,
     addAccount,
     updateUserAccount,
+    userAccount,
+    setUserAccount,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -1,10 +1,10 @@
 import React, { useState, useContext, useEffect } from "react";
 import "./dashboard.css";
 import "./disbursement.css";
-import logo from "../logo.png";
+import logo from "../assets/logo.png";
 import { NavLink, useNavigate } from "react-router-dom";
 import { AppContext } from "../AppContext";
-import settingsicon from "./settingsicon.png";
+import settingsicon from "../assets/settingsicon.png";
 
 export default function Disbursement() {
   const {
@@ -16,16 +16,56 @@ export default function Disbursement() {
     defaultCOA,
     refCounter,
     totalRequested,
+    userAccount,
+    setUserAccount,
   } = useContext(AppContext);
   const navigate = useNavigate();
 
   const [manualAccountError, setManualAccountError] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [validationErrors, setValidationErrors] = useState({
+    name: "",
+    contact: "",
+    amount: "",
+    manualAccountNumber: "",
+  });
 
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editingField, setEditingField] = useState(null);
+  const [tempValue, setTempValue] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  function toggleMobileMenu() {
+    setMobileMenuOpen(!mobileMenuOpen);
+  }
+
+  function closeMobileMenu() {
+    setMobileMenuOpen(false);
+  }
+
+  function handleEditField(field) {
+    setEditingField(field);
+    setTempValue(userAccount[field]);
+  }
+
+  function handleSaveField(field) {
+    if (field === "password" && tempValue.length < 6) {
+      alert("Password must be at least 6 characters");
+      return;
+    }
+    setUserAccount((prev) => ({ ...prev, [field]: tempValue }));
+    setEditingField(null);
+    setTempValue("");
+  }
+
+  function handleCancelEdit() {
+    setEditingField(null);
+    setTempValue("");
+  }
 
   const [form, setForm] = useState({
     name: "",
@@ -66,9 +106,20 @@ export default function Disbursement() {
   function handleChange(e) {
     const { name, value } = e.target;
 
+    // Clear validation error for this field
+    setValidationErrors((prev) => ({ ...prev, [name]: "" }));
+
     if (name === "name") {
       const query = value.trim();
       setForm((prev) => ({ ...prev, name: value }));
+
+      // Validate: Name should be text/letters
+      if (value && /^\d+$/.test(value)) {
+        setValidationErrors((prev) => ({
+          ...prev,
+          name: "Please enter text/letters for the payee name (e.g., John Doe, ABC Company)",
+        }));
+      }
 
       if (!query) {
         setNameError(false);
@@ -89,6 +140,49 @@ export default function Disbursement() {
       return;
     }
 
+    // Validate Contact: Phone or Email
+    if (name === "contact") {
+      setForm((prev) => ({ ...prev, [name]: value }));
+      if (value) {
+        const isPhone = /^[0-9+\-\s()]*$/.test(value);
+        const isEmail =
+          /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(value);
+        if (!isPhone && !isEmail) {
+          setValidationErrors((prev) => ({
+            ...prev,
+            contact:
+              "Please enter a valid phone number (e.g., 09123456789) or email (e.g., name@email.com)",
+          }));
+        }
+      }
+      return;
+    }
+
+    // Validate Amount: Numbers only
+    if (name === "amount") {
+      if (value && (isNaN(value) || Number(value) <= 0)) {
+        setValidationErrors((prev) => ({
+          ...prev,
+          amount:
+            "Please enter a valid amount (numbers only, e.g., 1000, 1500.50)",
+        }));
+      }
+      setForm((prev) => ({ ...prev, [name]: value }));
+      return;
+    }
+
+    // Validate Manual Account Number: Numbers only
+    if (name === "manualAccountNumber") {
+      if (value && !/^\d+$/.test(value)) {
+        setValidationErrors((prev) => ({
+          ...prev,
+          manualAccountNumber: "Please enter numbers only (e.g., 12345678)",
+        }));
+      }
+      setForm((prev) => ({ ...prev, [name]: value }));
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
@@ -100,6 +194,15 @@ export default function Disbursement() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    // Check for any validation errors
+    const hasErrors = Object.values(validationErrors).some(
+      (error) => error !== ""
+    );
+    if (hasErrors) {
+      alert("Please fix all validation errors before submitting.");
+      return;
+    }
 
     if (
       !form.name ||
@@ -162,7 +265,10 @@ export default function Disbursement() {
     //   }
     // }
 
-    await addDisbursement({ ...form });
+    await addDisbursement({
+      ...form,
+      created_by: userAccount.username,
+    });
 
     alert("Disbursement submitted and pending approval.");
 
@@ -197,25 +303,65 @@ export default function Disbursement() {
 
   return (
     <div className="dash-root">
-      <aside className="sidebar">
-        <div className="logo-wrap">
-          <img src={logo} alt="logo" className="logo" />
+      {/* Mobile Header Bar */}
+      <div className="mobile-header">
+        <button
+          className="hamburger-btn"
+          onClick={toggleMobileMenu}
+          aria-label="Toggle menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <h1 className="mobile-page-title">Disbursement</h1>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="mobile-overlay" onClick={closeMobileMenu}></div>
+      )}
+
+      <aside className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}>
+        <div className="sidebar-header">
+          <div className="logo-wrap">
+            <img src={logo} alt="logo" className="logo" />
+          </div>
+          <button
+            className="close-menu-btn"
+            onClick={closeMobileMenu}
+            aria-label="Close menu"
+          >
+            ×
+          </button>
         </div>
 
         <nav className="nav">
-          <NavLink to="/dashboard" className="nav-item">
+          <NavLink
+            to="/dashboard"
+            className="nav-item"
+            onClick={closeMobileMenu}
+          >
             Dashboard
           </NavLink>
-          <NavLink to="/disbursement" className="nav-item">
+          <NavLink
+            to="/disbursement"
+            className="nav-item"
+            onClick={closeMobileMenu}
+          >
             Disbursement
           </NavLink>
-          <NavLink to="/payees" className="nav-item">
+          <NavLink to="/payees" className="nav-item" onClick={closeMobileMenu}>
             Payees
           </NavLink>
-          <NavLink to="/summary" className="nav-item">
+          <NavLink to="/summary" className="nav-item" onClick={closeMobileMenu}>
             Summary
           </NavLink>
-          <NavLink to="/chartofaccounts" className="nav-item">
+          <NavLink
+            to="/chartofaccounts"
+            className="nav-item"
+            onClick={closeMobileMenu}
+          >
             Chart of Accounts
           </NavLink>
         </nav>
@@ -253,7 +399,12 @@ export default function Disbursement() {
 
           <h1 className="page-title">Disbursement</h1>
           <div className="top-controls">
-            <input className="search" placeholder="Search..." />
+            <input
+              className="search"
+              placeholder="Search form fields..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
 
             <button
               className="gear"
@@ -281,7 +432,7 @@ export default function Disbursement() {
                   value={form.name}
                   onChange={handleChange}
                   className={`full-width-input ${
-                    nameError ? "input-error" : ""
+                    nameError || validationErrors.name ? "input-error" : ""
                   }`}
                   autoComplete="off"
                 />
@@ -299,7 +450,10 @@ export default function Disbursement() {
                 )}
               </div>
               <div className="error-holder">
-                {nameError && (
+                {validationErrors.name && (
+                  <span className="error-text">{validationErrors.name}</span>
+                )}
+                {nameError && !validationErrors.name && (
                   <span className="error-text">
                     Payee not found. Please add them in the Payees page.
                   </span>
@@ -357,8 +511,15 @@ export default function Disbursement() {
                 placeholder="Phone number or email..."
                 value={form.contact}
                 onChange={handleChange}
-                className="full-width-input"
+                className={`full-width-input ${
+                  validationErrors.contact ? "input-error" : ""
+                }`}
               />
+              {validationErrors.contact && (
+                <div className="error-holder">
+                  <span className="error-text">{validationErrors.contact}</span>
+                </div>
+              )}
             </div>
 
             <div className="form-row inline">
@@ -369,7 +530,16 @@ export default function Disbursement() {
                 placeholder="₱..."
                 value={form.amount}
                 onChange={handleChange}
+                min="0.01"
+                step="0.01"
+                required
+                className={validationErrors.amount ? "input-error" : ""}
               />
+              {validationErrors.amount && (
+                <div className="error-holder">
+                  <span className="error-text">{validationErrors.amount}</span>
+                </div>
+              )}
 
               <label>Account Number:</label>
               <input
@@ -378,7 +548,17 @@ export default function Disbursement() {
                 placeholder="Enter account number..."
                 value={form.manualAccountNumber}
                 onChange={handleChange}
+                className={
+                  validationErrors.manualAccountNumber ? "input-error" : ""
+                }
               />
+              {validationErrors.manualAccountNumber && (
+                <div className="error-holder">
+                  <span className="error-text">
+                    {validationErrors.manualAccountNumber}
+                  </span>
+                </div>
+              )}
 
               <label>Date:</label>
               <input
@@ -462,33 +642,152 @@ export default function Disbursement() {
 
               <div className="field-row">
                 <label>Username:</label>
-                <div className="info-row">
-                  <span>yourusername</span>
-                  <button className="change-btn">Change Username</button>
-                </div>
+                {editingField === "username" ? (
+                  <div className="edit-row">
+                    <input
+                      className="edit-input"
+                      type="text"
+                      value={tempValue}
+                      onChange={(e) => setTempValue(e.target.value)}
+                      autoFocus
+                    />
+                    <button
+                      className="save-btn"
+                      onClick={() => handleSaveField("username")}
+                    >
+                      Save
+                    </button>
+                    <button className="cancel-btn" onClick={handleCancelEdit}>
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="info-row">
+                    <span>{userAccount.username}</span>
+                    <button
+                      className="change-btn"
+                      onClick={() => handleEditField("username")}
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="field-row">
                 <label>Email:</label>
-                <span>your@email.com</span>
+                {editingField === "email" ? (
+                  <div className="edit-row">
+                    <input
+                      className="edit-input"
+                      type="email"
+                      value={tempValue}
+                      onChange={(e) => setTempValue(e.target.value)}
+                      autoFocus
+                    />
+                    <button
+                      className="save-btn"
+                      onClick={() => handleSaveField("email")}
+                    >
+                      Save
+                    </button>
+                    <button className="cancel-btn" onClick={handleCancelEdit}>
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="info-row">
+                    <span>{userAccount.email}</span>
+                    <button
+                      className="change-btn"
+                      onClick={() => handleEditField("email")}
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="field-row">
                 <label>Contact Number:</label>
-                <span>09123456789</span>
+                {editingField === "contactNumber" ? (
+                  <div className="edit-row">
+                    <input
+                      className="edit-input"
+                      type="text"
+                      maxLength="11"
+                      value={tempValue}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, "");
+                        setTempValue(val);
+                      }}
+                      autoFocus
+                    />
+                    <button
+                      className="save-btn"
+                      onClick={() => handleSaveField("contactNumber")}
+                    >
+                      Save
+                    </button>
+                    <button className="cancel-btn" onClick={handleCancelEdit}>
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="info-row">
+                    <span>{userAccount.contactNumber}</span>
+                    <button
+                      className="change-btn"
+                      onClick={() => handleEditField("contactNumber")}
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="field-row">
                 <label>Password:</label>
-                <div className="info-row">
-                  <span>*********</span>
-                  <button className="change-btn">Change Password</button>
-                </div>
+                {editingField === "password" ? (
+                  <div className="edit-row">
+                    <input
+                      className="edit-input"
+                      type="password"
+                      placeholder="Enter new password (min 6 chars)"
+                      value={tempValue}
+                      onChange={(e) => setTempValue(e.target.value)}
+                      autoFocus
+                    />
+                    <button
+                      className="save-btn"
+                      onClick={() => handleSaveField("password")}
+                    >
+                      Save
+                    </button>
+                    <button className="cancel-btn" onClick={handleCancelEdit}>
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="info-row">
+                    <span>*********</span>
+                    <button
+                      className="change-btn"
+                      onClick={() => handleEditField("password")}
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button
                 className="close-modal"
-                onClick={() => setShowAccountModal(false)}
+                onClick={() => {
+                  setShowAccountModal(false);
+                  setEditingField(null);
+                  setTempValue("");
+                }}
               >
                 Close
               </button>

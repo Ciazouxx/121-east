@@ -52,6 +52,7 @@ CREATE TABLE disbursements (
   reason TEXT,
   reference TEXT UNIQUE,
   status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Failed')),
+  created_by TEXT DEFAULT 'Unknown User',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

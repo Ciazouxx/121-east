@@ -1,40 +1,114 @@
+.table-pagination-wrapper {
+  position: relative;
+  min-height: 620px; /* Increased to accommodate table + pagination */
+  display: flex;
+  flex-direction: column;
+}
+
 .content-table {
   margin-top: 20px;
   max-width: 100%;
-  overflow-x: auto;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  min-height: 550px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  background: white;
+  height: auto;
+  flex-shrink: 0;
 }
 
 .payees-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   color: #333;
   table-layout: fixed;
 }
 
+.payees-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #c41e3a, #8b1321);
+}
+
 .payees-table thead th {
-  background-color: #f5f5f5;
-  font-weight: 600;
-  padding: 12px 15px;
+  background: linear-gradient(135deg, #c41e3a, #8b1321);
+  font-weight: 700;
+  padding: 16px 18px;
   text-align: left;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 3px solid #d4495c;
+  height: 50px;
+  line-height: 1.4;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+  color: #ffffff;
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.payees-table tbody {
+  display: block;
+  height: 520px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.payees-table tbody::-webkit-scrollbar {
+  width: 8px;
+}
+
+.payees-table tbody::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.payees-table tbody::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.payees-table tbody::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.payees-table thead,
+.payees-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
 }
 
 .payees-table td {
-  padding: 12px 15px;
+  padding: 14px 15px;
   border-bottom: 1px solid #e0e0e0;
-  word-wrap: break-word;
+  height: 52px;
+  max-height: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+.payees-table tbody tr {
+  height: 52px;
+  max-height: 52px;
+  transition: all 0.2s ease;
+}
+
+.payees-table tbody tr:hover {
+  background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+  transform: scale(1.005);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .payees-table tbody tr:last-child td {
   border-bottom: none;
-}
-
-.payees-table tbody tr:hover {
-  background-color: #f9f9f9;
 }
 
 .empty-text {
@@ -45,17 +119,20 @@
 }
 
 .action-buttons button {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #c41e3a, #8b1321);
   color: white;
   border: none;
-  padding: 8px 12px;
-  border-radius: 5px;
+  padding: 10px 16px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .action-buttons button:hover {
-  background-color: #0056b3;
+  background: linear-gradient(135deg, #a01729, #6b0e17);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
 }
 
 .add-payee-container {
@@ -65,46 +142,62 @@
 }
 
 .add-payee-btn {
-  background-color: #28a745;
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
   border: none;
-  padding: 10px 15px;
-  border-radius: 5px;
+  padding: 12px 20px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 16px;
-  transition: background-color 0.3s;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .add-payee-btn:hover {
-  background-color: #218838;
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .pagination-controls {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   align-items: center;
   margin-top: 20px;
+  height: 40px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .pagination-controls button {
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  padding: 8px 12px;
-  margin: 0 5px;
+  background: linear-gradient(135deg, #c41e3a, #8b1321);
+  border: none;
+  padding: 10px 20px;
   cursor: pointer;
-  border-radius: 5px;
-  color: black;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 100px;
+  transition: all 0.2s ease;
 }
 
 .pagination-controls button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+  background: #cbd5e0;
+}
+
+.pagination-controls button:not(:disabled):hover {
+  background: linear-gradient(135deg, #a01729, #6b0e17);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
 }
 
 .pagination-controls span {
-  margin: 0 10px;
-  font-size: 16px;
-  color: black;
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
 }
 
 .modal-overlay {
@@ -122,11 +215,12 @@
 
 .modal {
   background: #fff;
-  padding: 25px;
-  border-radius: 8px;
+  padding: 32px;
+  border-radius: 12px;
   width: 90%;
   max-width: 500px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .modal h2 {
@@ -149,10 +243,17 @@
 
 .form-row input {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 16px;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.2s ease;
+}
+
+.form-row input:focus {
+  outline: none;
+  border-color: #c41e3a;
+  box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
 }
 
 .modal-actions {
@@ -171,15 +272,202 @@
 }
 
 .modal-actions .delete-btn {
-  background-color: #dc3545;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
   color: white;
+  padding: 10px 20px;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .modal-actions .delete-btn:hover {
-  background-color: #c82333;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .modal-actions button:first-child {
   background-color: #007bff;
   color: white;
+}
+
+/* ============================================ */
+/* RESPONSIVE DESIGN - PAYEES PAGE */
+/* ============================================ */
+
+/* Tablet Styles (768px - 1024px) */
+@media (max-width: 1024px) {
+  .payees-table thead th {
+    padding: 14px 12px;
+    font-size: 12px;
+  }
+
+  .payees-table td {
+    padding: 12px 10px;
+    font-size: 13px;
+  }
+
+  .payees-table tbody {
+    height: 450px;
+  }
+}
+
+/* Mobile Styles (481px - 767px) */
+@media (max-width: 767px) {
+  .table-pagination-wrapper {
+    min-height: auto;
+  }
+
+  .content-table {
+    margin-top: 15px;
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+
+  .payees-table {
+    min-width: 800px; /* Prevent table from becoming too narrow */
+  }
+
+  .payees-table thead th {
+    padding: 12px 10px;
+    font-size: 11px;
+  }
+
+  .payees-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .payees-table tbody {
+    height: 400px;
+  }
+
+  .add-payee-container {
+    margin-bottom: 15px;
+  }
+
+  .add-payee-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+  }
+
+  .pagination-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+  }
+
+  .pagination-controls button {
+    padding: 8px 16px;
+    font-size: 13px;
+    min-width: 80px;
+  }
+
+  .pagination-controls span {
+    font-size: 13px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .modal {
+    padding: 24px;
+    width: 95%;
+  }
+
+  .modal h2 {
+    font-size: 20px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions button {
+    width: 100%;
+    padding: 12px;
+  }
+
+  .action-buttons button {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+}
+
+/* Small Mobile Styles (320px - 480px) */
+@media (max-width: 480px) {
+  .content-table {
+    margin-top: 12px;
+    border-radius: 8px;
+  }
+
+  .payees-table {
+    min-width: 700px;
+  }
+
+  .payees-table thead th {
+    padding: 10px 8px;
+    font-size: 10px;
+  }
+
+  .payees-table td {
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+
+  .payees-table tbody {
+    height: 350px;
+  }
+
+  .add-payee-btn {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .pagination-controls button {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-width: 70px;
+  }
+
+  .pagination-controls span {
+    font-size: 12px;
+  }
+
+  .modal {
+    padding: 20px;
+  }
+
+  .modal h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .form-row {
+    margin-bottom: 12px;
+  }
+
+  .form-row label {
+    font-size: 14px;
+  }
+
+  .form-row input {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .modal-actions button {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .action-buttons button {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .empty-text {
+    padding: 30px;
+    font-size: 14px;
+  }
 }

@@ -3,9 +3,11 @@
 ## Issue 1: Payees Not Appearing in Frontend ✅ FIXED
 
 ### Problem
+
 Payees were being added to Supabase but not showing in the frontend.
 
 ### Solution
+
 1. **Fixed data loading priority**: Changed `loadAllData()` to prioritize `payees` table instead of trying `vendor` first
 2. **Improved refresh**: After adding a payee, the code now:
    - Calls `loadAllData()` to reload from database
@@ -13,16 +15,20 @@ Payees were being added to Supabase but not showing in the frontend.
    - Prevents duplicates
 
 ### Files Changed
+
 - `src/AppContext.jsx` - Fixed `loadAllData()` to use `payees` table directly
 - `src/pages/payees.jsx` - Improved refresh after adding payee
 
 ## Issue 2: Tables Not Relational ✅ FIXED
 
 ### Problem
+
 Tables had no foreign key relationships, making them non-relational.
 
 ### Solution
+
 Created `make-relational.sql` script that:
+
 1. Adds `payee_id` column to `disbursements` table (foreign key to `payees.id`)
 2. Adds `account_id` column to `disbursements` table (foreign key to `charts_of_account.account_id`)
 3. Populates foreign keys from existing data
@@ -53,6 +59,7 @@ charts_of_account (1) ──< (many) disbursements
 ## Updated Code
 
 The code now:
+
 - ✅ Uses `payee_id` when creating disbursements (proper foreign key)
 - ✅ Loads disbursements with relational joins to payees
 - ✅ Properly refreshes payees list after adding
@@ -74,16 +81,16 @@ SELECT
     kcu.column_name AS "Column",
     ccu.table_name AS "References Table",
     ccu.column_name AS "References Column"
-FROM information_schema.table_constraints AS tc 
+FROM information_schema.table_constraints AS tc
 JOIN information_schema.key_column_usage AS kcu
   ON tc.constraint_name = kcu.constraint_name
 JOIN information_schema.constraint_column_usage AS ccu
   ON ccu.constraint_name = tc.constraint_name
-WHERE tc.constraint_type = 'FOREIGN KEY' 
+WHERE tc.constraint_type = 'FOREIGN KEY'
   AND tc.table_schema = 'public';
 ```
 
 You should see:
+
 - `disbursements.payee_id` → `payees.id`
 - `disbursements.account_id` → `charts_of_account.account_id`
-

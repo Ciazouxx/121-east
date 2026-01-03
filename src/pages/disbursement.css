@@ -1,15 +1,17 @@
 /* disbursement form */
 .form-card {
-  background: var(--panel-bg);
-  border: 1px solid #030303;
-  border-radius: 10px;
-  padding: 28px;
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.04);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 36px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  max-width: 825px;
-  height: 500px;
+  gap: 20px;
+  max-width: 850px;
+  min-height: 500px;
+  height: auto;
   margin: 0 auto;
 }
 
@@ -33,12 +35,21 @@
 .form-row input,
 .form-row select,
 .form-row textarea {
-  padding: 8px 10px;
-  border: 1px solid #777;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
   background-color: #fff;
-  color: #030303;
+  color: #1e293b;
+  transition: all 0.2s ease;
+}
+
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus {
+  outline: none;
+  border-color: #c41e3a;
+  box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
 }
 
 .full-width-input {
@@ -50,7 +61,8 @@
   resize: none;
   overflow-y: auto;
   overflow-x: hidden;
-  margin-bottom: 2rem;
+  margin-bottom: 0;
+  min-height: 80px;
 }
 
 .form-actions {
@@ -66,20 +78,21 @@
 }
 
 .copy-ref {
-  background-color: #007bff;
+  background: linear-gradient(135deg, #c41e3a, #8b1321);
   color: #fff;
   border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 10px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 700;
-  box-shadow: 0 2px 6px rgba(0, 123, 255, 0.18);
-  transition: background-color 0.15s ease, transform 0.06s ease;
+  box-shadow: 0 4px 6px rgba(196, 30, 58, 0.2);
+  transition: all 0.2s ease;
 }
 
 .copy-ref:hover {
-  background-color: #0064d6;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #a01729, #6b0e17);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(196, 30, 58, 0.3);
 }
 
 .copy-ref:active {
@@ -105,13 +118,31 @@
 }
 
 .btn.cancel {
-  background: #c77;
+  background: linear-gradient(135deg, #64748b, #475569);
   color: white;
+  padding: 10px 20px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn.cancel:hover {
+  background: linear-gradient(135deg, #475569, #334155);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(71, 85, 105, 0.3);
 }
 
 .btn.submit {
-  background: #3b7a3b;
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
+  padding: 10px 20px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn.submit:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .form-row textarea::-webkit-scrollbar {
@@ -123,15 +154,27 @@
 }
 
 .error-holder {
-  height: 5px;
+  min-height: 20px;
   margin-top: 2px;
   position: relative;
 }
 
 .error-text {
-  color: red;
+  color: #dc2626;
   font-size: 12px;
-  position: absolute;
+  font-weight: 500;
+  display: block;
+  margin-top: 4px;
+}
+
+.input-error {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+}
+
+.input-error:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
 }
 
 .form-actions input {
@@ -152,4 +195,125 @@
 /* Change date picker icon to black */
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
+}
+
+/* ============================================ */
+/* RESPONSIVE DESIGN - DISBURSEMENT PAGE */
+/* ============================================ */
+
+/* Tablet Styles (768px - 1024px) */
+@media (max-width: 1024px) {
+  .form-card {
+    max-width: 95%;
+    padding: 28px;
+  }
+
+  .form-row.inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ref-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .copy-ref {
+    width: 100%;
+  }
+}
+
+/* Mobile Styles (481px - 767px) */
+@media (max-width: 767px) {
+  .form-card {
+    max-width: 100%;
+    padding: 20px;
+    gap: 16px;
+    min-height: auto;
+    border-radius: 12px;
+  }
+
+  .form-row {
+    gap: 4px;
+  }
+
+  .form-row label {
+    font-size: 14px;
+  }
+
+  .form-row input,
+  .form-row select,
+  .form-row textarea {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .form-row textarea {
+    min-height: 100px;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .btn.cancel,
+  .btn.submit {
+    width: 100%;
+    padding: 12px;
+  }
+
+  .ref-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .copy-ref {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .form-actions label {
+    font-size: 18px;
+  }
+}
+
+/* Small Mobile Styles (320px - 480px) */
+@media (max-width: 480px) {
+  .form-card {
+    padding: 16px;
+    gap: 14px;
+    border-radius: 10px;
+  }
+
+  .form-row label {
+    font-size: 13px;
+  }
+
+  .form-row input,
+  .form-row select,
+  .form-row textarea {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .btn.cancel,
+  .btn.submit {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .copy-ref {
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .form-actions label {
+    font-size: 16px;
+  }
+
+  .error-text {
+    font-size: 11px;
+  }
 }

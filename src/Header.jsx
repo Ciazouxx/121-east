@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import settingsicon from "./pages/settingsicon.png";
+import settingsicon from "./assets/settingsicon.png";
 import { AppContext } from "./AppContext";
 
 export default function Header({ title }) {

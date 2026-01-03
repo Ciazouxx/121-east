@@ -1,11 +1,13 @@
 .coa-table-container {
-  padding: 1rem;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  height: calc(100vh - 150px); /* Adjust based on your topbar height */
+  padding: 2rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  height: calc(100vh - 150px);
   display: flex;
   flex-direction: column;
+  border: 2px solid #e2e8f0;
 }
 
 .coa-table-wrapper {
@@ -22,20 +24,23 @@
 .coa-table thead {
   position: sticky;
   top: 0;
-  background-color: #f4f4f4;
+  background: linear-gradient(135deg, #c41e3a, #8b1321);
   z-index: 1;
 }
 
 .coa-table th,
 .coa-table td {
-  padding: 12px 15px;
+  padding: 16px 18px;
   text-align: left;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .coa-table th {
-  font-weight: 600;
-  color: #000;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.5px;
 }
 
 .coa-table td {
@@ -44,7 +49,9 @@
 }
 
 .coa-table tbody tr:hover {
-  background-color: #f9f9f9;
+  background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+  transform: scale(1.002);
+  transition: all 0.2s ease;
 }
 
 .coa-table td:last-child {
@@ -54,22 +61,33 @@
 
 .btn-edit,
 .btn-delete {
-  padding: 6px 12px;
+  padding: 8px 16px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .btn-edit {
-  background-color: #e0e0e0;
-  color: #000;
+  background: linear-gradient(135deg, #c41e3a, #8b1321);
+  color: #fff;
+}
+
+.btn-edit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
 }
 
 .btn-delete {
-  background-color: var(--accent);
+  background: linear-gradient(135deg, #1e293b, #0f172a);
   color: white;
+}
+
+.btn-delete:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
 }
 
 /* Modal Styles */
@@ -88,12 +106,13 @@
 
 .edit-modal {
   background: #fff;
-  padding: 24px;
-  border-radius: 8px;
+  padding: 32px;
+  border-radius: 12px;
   width: 100%;
-  max-width: 450px;
+  max-width: 500px;
   color: black;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .edit-modal h2 {
@@ -116,15 +135,41 @@
 
 .edit-modal input,
 .edit-modal select {
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
   font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.edit-modal input:focus,
+.edit-modal select:focus {
+  outline: none;
+  border-color: #c41e3a;
+  box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
 }
 
 .edit-modal input:disabled {
   background-color: #f4f4f4;
   cursor: not-allowed;
+}
+
+.edit-modal input.input-error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.edit-modal input.input-error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.error-message {
+  display: block;
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 500;
 }
 
 .modal-actions {
@@ -143,13 +188,29 @@
 }
 
 .btn-cancel {
-  background-color: #e0e0e0;
-  color: #333;
+  background: #e2e8f0;
+  color: #1e293b;
+  padding: 10px 20px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #cbd5e0;
 }
 
 .btn-save {
-  background-color: #3b7a3b;
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
+  padding: 10px 20px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-save:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .btn-add-account {
@@ -162,4 +223,167 @@
   cursor: pointer;
   font-size: 14px;
   white-space: nowrap;
+}
+
+/* ============================================ */
+/* RESPONSIVE DESIGN - CHART OF ACCOUNTS PAGE */
+/* ============================================ */
+
+/* Tablet Styles (768px - 1024px) */
+@media (max-width: 1024px) {
+  .coa-table-container {
+    padding: 1.5rem;
+    height: calc(100vh - 120px);
+  }
+
+  .coa-table th,
+  .coa-table td {
+    padding: 14px 12px;
+    font-size: 13px;
+  }
+
+  .coa-table th {
+    font-size: 12px;
+  }
+
+  .btn-edit,
+  .btn-delete {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* Mobile Styles (481px - 767px) */
+@media (max-width: 767px) {
+  .coa-table-container {
+    padding: 1rem;
+    height: calc(100vh - 100px);
+    border-radius: 12px;
+  }
+
+  .coa-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .coa-table {
+    min-width: 800px;
+    font-size: 13px;
+  }
+
+  .coa-table th,
+  .coa-table td {
+    padding: 12px 10px;
+  }
+
+  .coa-table th {
+    font-size: 11px;
+  }
+
+  .coa-table td {
+    font-size: 12px;
+  }
+
+  .coa-table td:last-child {
+    gap: 6px;
+  }
+
+  .btn-edit,
+  .btn-delete {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .btn-add-account {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .edit-modal {
+    padding: 24px;
+    width: 95%;
+  }
+
+  .edit-modal h2 {
+    font-size: 18px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+}
+
+/* Small Mobile Styles (320px - 480px) */
+@media (max-width: 480px) {
+  .coa-table-container {
+    padding: 0.8rem;
+    height: calc(100vh - 90px);
+  }
+
+  .coa-table {
+    min-width: 700px;
+    font-size: 12px;
+  }
+
+  .coa-table th,
+  .coa-table td {
+    padding: 10px 8px;
+  }
+
+  .coa-table th {
+    font-size: 10px;
+  }
+
+  .coa-table td {
+    font-size: 11px;
+  }
+
+  .coa-table td:last-child {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .btn-edit,
+  .btn-delete {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .btn-add-account {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .edit-modal {
+    padding: 20px;
+  }
+
+  .edit-modal h2 {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+
+  .edit-modal .form-group {
+    margin-bottom: 14px;
+  }
+
+  .edit-modal label {
+    font-size: 13px;
+  }
+
+  .edit-modal input,
+  .edit-modal select {
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  .modal-actions button {
+    padding: 10px;
+    font-size: 13px;
+  }
 }

@@ -68,3 +68,102 @@ color: #030303;
 .settings-item:hover {
 background: rgba(0,0,0,0.06);
 }
+/* ============================================ */
+/* RESPONSIVE DESIGN - TOPBAR */
+/* ============================================ */
+
+/* Tablet Styles (768px - 1024px) */
+@media (max-width: 1024px) {
+  .topbar {
+    margin-bottom: 18px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .search {
+    min-width: 200px;
+    padding: 8px 12px;
+  }
+
+  .gear img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .settings-menu {
+    right: 20px;
+  }
+}
+
+/* Mobile Styles (481px - 767px) */
+@media (max-width: 767px) {
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .top-controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .search {
+    width: 100%;
+    min-width: auto;
+    padding: 10px 14px;
+  }
+
+  .gear {
+    align-self: flex-end;
+  }
+
+  .gear img {
+    width: 38px;
+    height: 38px;
+  }
+
+  .settings-menu {
+    right: 12px;
+    top: 60px;
+  }
+}
+
+/* Small Mobile Styles (320px - 480px) */
+@media (max-width: 480px) {
+  .topbar {
+    margin-bottom: 14px;
+  }
+
+  .page-title {
+    font-size: 16px;
+  }
+
+  .search {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .gear img {
+    width: 35px;
+    height: 35px;
+  }
+
+  .settings-menu {
+    right: 10px;
+    top: 55px;
+    min-width: 150px;
+  }
+
+  .settings-item {
+    padding: 6px;
+    font-size: 14px;
+  }
+}
