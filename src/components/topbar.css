@@ -1,0 +1,70 @@
+.topbar {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 22px;
+}
+
+.page-title {
+margin: 0;
+font-size: 22px;
+font-weight: 700;
+color: #030303;
+}
+
+.top-controls {
+display: flex;
+gap: 12px;
+align-items: center;
+}
+
+.search {
+padding: 8px 12px;
+border-radius: 20px;
+border: 1px solid #030303;
+min-width: 260px;
+outline: none;
+background-color: #ffffff;
+color: #030303;
+}
+
+.gear {
+background: transparent;
+border: none;
+font-size: 10px;
+cursor: pointer;
+}
+
+.gear img {
+    width: 45px;
+    height: 45px;
+}
+
+.settings-menu {
+position: absolute;
+top: 70px;
+right: 30px;
+background: white;
+border: 1px solid #030303;
+border-radius: 8px;
+padding: 10px;
+display: flex;
+flex-direction: column;
+gap: 6px;
+z-index: 50;
+}
+
+.settings-item {
+background: transparent;
+border: none;
+padding: 8px;
+text-align: left;
+cursor: pointer;
+border-radius: 6px;
+font-weight: 600;
+color: #030303;
+}
+
+.settings-item:hover {
+background: rgba(0,0,0,0.06);
+}
